@@ -18,5 +18,15 @@ static int gettok() {
     // Skip any whitespace.
     while (isspace(LastChar))
         LastChar = getchar();
+
+    if (isalpha(LastChar)) {  // identifier: [a-zA-Z][a-zA-Z0-9]*
+        IdentifierStr = LastChar;
+        while (isalnum((LastChar = getchar())))
+            IdentifierStr += LastChar;
+
+        if (IdentifierStr == "def") return tok_def;
+        if (IdentifierStr == "extern") return tok_extern;
+        return tok_identifier;
+    }
 }
 
