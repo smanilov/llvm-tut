@@ -1,5 +1,3 @@
-// The lexer returns tokens [0-255] if it is an unknown character, otherwise one
-// of these for known things.
 enum class Token {
     tok_eof = -1,
     
@@ -12,3 +10,13 @@ enum class Token {
 
 static string IdentifierStr;  // Filled in if tok_identifier
 static double NumVal;         // Filled in if tok_number
+
+/// gettok - Return the next token from standard input.
+static int gettok() {
+    static int LastChar = ' ';
+
+    // Skip any whitespace.
+    while (isspace(LastChar))
+        LastChar = getchar();
+}
+
