@@ -48,5 +48,14 @@ static int gettok() {
         if (LastChar != EOF)
             return gettok();
     }
+
+    // Check for end of file.  Don't eat the EOF.
+    if (LastChar == EOF)
+        return tok_eof;
+
+    // Otherwise, just return the character as its ascii value.
+    int ThisChar = LastChar;
+    LastChar = getchar();
+    return ThisChar;
 }
 
