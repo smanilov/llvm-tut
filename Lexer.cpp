@@ -240,5 +240,11 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // Parse the primary expression after the binary operator.
         ExprAST *RHS = ParsePrimary();
         if (!RHS) return 0;
+
+        // If BinOp binds less tightly with RHS than the operator after RHS, let
+        // the pending operator take RHS as its LHS.
+        int NextPrec = GetTokPrecedence();
+        if (TokPrec < NextPrec) {
+        }
     }
 }
