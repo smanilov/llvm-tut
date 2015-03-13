@@ -129,3 +129,10 @@ public:
 ExprAST *Error(const char *Str) { fprintf(stderr, "Error: %s\n", Str);return 0;}
 PrototypeAST *ErrorP(const char *Str) { Error(Str); return 0; }
 FunctionAST *ErrorF(const char *Str) { Error(Str); return 0; }
+
+/// numberexpr ::= number
+static ExprAST *ParseNumberExpr() {
+  ExprAST *Result = new NumberExprAST(NumVal);
+  getNextToken(); // consume the number
+  return Result;
+}
