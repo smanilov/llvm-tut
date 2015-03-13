@@ -245,6 +245,10 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // the pending operator take RHS as its LHS.
         int NextPrec = GetTokPrecedence();
         if (TokPrec < NextPrec) {
+            // ... if body omitted ...
         }
-    }
+
+        // Merge LHS/RHS.
+        LHS = new BinaryExprAST(BinOp, LHS, RHS);
+    }  // loop around to the top of the while loop.
 }
