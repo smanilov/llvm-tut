@@ -289,3 +289,9 @@ static FunctionAST *ParseDefinition() {
         return new FunctionAST(Proto, E);
     return 0;
 }
+
+/// external ::= 'extern' prototype
+static PrototypeAST *ParseExtern() {
+    getNextToken();  // eat extern.
+    return ParsePrototype();
+}
