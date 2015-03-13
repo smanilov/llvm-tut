@@ -232,5 +232,13 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // consume it, otherwise we are done.
         if (TokPrec < ExprPrec)
             return LHS;
+
+        // Okay, we know this is a binop.
+        int BinOp = CurTok;
+        getNextToken();  // eat binop
+
+        // Parse the primary expression after the binary operator.
+        ExprAST *RHS = ParsePrimary();
+        if (!RHS) return 0;
     }
 }
