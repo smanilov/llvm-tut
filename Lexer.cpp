@@ -210,3 +210,13 @@ static int GetTokPrecedence() {
     if (TokPrec <= 0) return -1;
     return TokPrec;
 }
+
+/// expression
+///   ::= primary binoprhs
+///
+static ExprAST *ParseExpression() {
+    ExprAST *LHS = ParsePrimary();
+    if (!LHS) return 0;
+
+    return ParseBinOpRHS(0, LHS);
+}
