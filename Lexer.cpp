@@ -64,7 +64,7 @@ static int gettok() {
 /// lexer and updates CurTok with its results.
 static int CurTok;
 static int getNextToken() {
-  return CurTok = gettok();
+    return CurTok = gettok();
 }
 
 /// ExprAST - Base class for all expression nodes.
@@ -82,47 +82,47 @@ public:
 
 /// VariableExprAST - Expression class for referencing a variable, like "a".
 class VariableExprAST : public ExprAST {
-  std::string Name;
+    std::string Name;
 public:
-  VariableExprAST(const std::string &name) : Name(name) {}
+    VariableExprAST(const std::string &name) : Name(name) {}
 };
 
 /// BinaryExprAST - Expression class for a binary operator.
 class BinaryExprAST : public ExprAST {
-  char Op;
-  ExprAST *LHS, *RHS;
+    char Op;
+    ExprAST *LHS, *RHS;
 public:
-  BinaryExprAST(char op, ExprAST *lhs, ExprAST *rhs)
-    : Op(op), LHS(lhs), RHS(rhs) {}
+    BinaryExprAST(char op, ExprAST *lhs, ExprAST *rhs)
+        : Op(op), LHS(lhs), RHS(rhs) {}
 };
 
 /// CallExprAST - Expression class for function calls.
 class CallExprAST : public ExprAST {
-  std::string Callee;
-  std::vector<ExprAST*> Args;
+    std::string Callee;
+    std::vector<ExprAST*> Args;
 public:
-  CallExprAST(const std::string &callee, std::vector<ExprAST*> &args)
-    : Callee(callee), Args(args) {}
+    CallExprAST(const std::string &callee, std::vector<ExprAST*> &args)
+        : Callee(callee), Args(args) {}
 };
 
 /// PrototypeAST - This class represents the "prototype" for a function,
 /// which captures its name, and its argument names (thus implicitly the number
 /// of arguments the function takes).
 class PrototypeAST {
-  std::string Name;
-  std::vector<std::string> Args;
+    std::string Name;
+    std::vector<std::string> Args;
 public:
-  PrototypeAST(const std::string &name, const std::vector<std::string> &args)
-    : Name(name), Args(args) {}
+    PrototypeAST(const std::string &name, const std::vector<std::string> &args)
+        : Name(name), Args(args) {}
 };
 
 /// FunctionAST - This class represents a function definition itself.
 class FunctionAST {
-  PrototypeAST *Proto;
-  ExprAST *Body;
+    PrototypeAST *Proto;
+    ExprAST *Body;
 public:
-  FunctionAST(PrototypeAST *proto, ExprAST *body)
-    : Proto(proto), Body(body) {}
+    FunctionAST(PrototypeAST *proto, ExprAST *body)
+        : Proto(proto), Body(body) {}
 };
 
 /// Error* - These are little helper functions for error handling.
@@ -132,7 +132,19 @@ FunctionAST *ErrorF(const char *Str) { Error(Str); return 0; }
 
 /// numberexpr ::= number
 static ExprAST *ParseNumberExpr() {
-  ExprAST *Result = new NumberExprAST(NumVal);
-  getNextToken(); // consume the number
-  return Result;
+    ExprAST *Result = new NumberExprAST(NumVal);
+    getNextToken(); // consume the number
+    return Result;
+}
+
+/// parenexpr ::= '(' expression ')'
+static ExprAST *ParseParenExpr() {
+    getNextToken();  // eat (.
+    ExprAST *V = ParseExpression();
+    if (!V) return 0;
+
+    if (CurTok != ')')
+        return Error("expected ')'");
+    getNextToken();  // eat ).
+    return V;
 }
