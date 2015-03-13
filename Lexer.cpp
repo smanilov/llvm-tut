@@ -253,3 +253,28 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         LHS = new BinaryExprAST(BinOp, LHS, RHS);
     }  // loop around to the top of the while loop.
 }
+
+/// prototype
+///   ::= id '(' id* ')'
+static PrototypeAST *ParsePrototype() {
+    if (CurTok != tok_identifier)
+        return ErrorP("Expected function name in prototype");
+
+    std::string FnName = IdentifierStr;
+    getNextToken();
+
+    if (CurTok != '(')
+        return ErrorP("Expected '(' in prototype");
+
+    // Read the list of argument names.
+    std::vector<std::string> ArgNames;
+    while (getNextToken() == tok_identifier)
+        ArgNames.push_back(IdentifierStr);
+    if (CurTok != ')')
+        return ErrorP("Expected ')' in prototype");
+
+    // success.
+    getNextToken();  // eat ')'.
+
+    return new PrototypeAST(FnName, ArgNames);
+}
