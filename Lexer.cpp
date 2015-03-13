@@ -295,3 +295,13 @@ static PrototypeAST *ParseExtern() {
     getNextToken();  // eat extern.
     return ParsePrototype();
 }
+
+/// toplevelexpr ::= expression
+static FunctionAST *ParseTopLevelExpr() {
+    if (ExprAST *E = ParseExpression()) {
+        // Make an anonymous proto.
+        PrototypeAST *Proto = new PrototypeAST("", std::vector<std::string>());
+        return new FunctionAST(Proto, E);
+    }
+    return 0;
+}
