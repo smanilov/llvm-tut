@@ -170,24 +170,7 @@ ExprAST *Error(const char *Str) { fprintf(stderr, "Error: %s\n", Str);return 0;}
 PrototypeAST *ErrorP(const char *Str) { Error(Str); return 0; }
 FunctionAST *ErrorF(const char *Str) { Error(Str); return 0; }
 
-/// numberexpr ::= number
-static ExprAST *ParseNumberExpr() {
-    ExprAST *Result = new NumberExprAST(NumVal);
-    getNextToken(); // consume the number
-    return Result;
-}
-
-/// parenexpr ::= '(' expression ')'
-static ExprAST *ParseParenExpr() {
-    getNextToken();  // eat (.
-    ExprAST *V = ParseExpression();
-    if (!V) return 0;
-
-    if (CurTok != ')')
-        return Error("expected ')'");
-    getNextToken();  // eat ).
-    return V;
-}
+static ExprAST *ParseExpression();
 
 /// identifierexpr
 ///   ::= identifier
@@ -207,7 +190,7 @@ static ExprAST *ParseIdentifierExpr() {
         while (1) {
             ExprAST *Arg = ParseExpression();
             if (!Arg) return 0;
-                  Args.push_back(Arg);
+            Args.push_back(Arg);
 
             if (CurTok == ')') break;
 
@@ -223,28 +206,36 @@ static ExprAST *ParseIdentifierExpr() {
     return new CallExprAST(IdName, Args);
 }
 
+/// numberexpr ::= number
+static ExprAST *ParseNumberExpr() {
+    ExprAST *Result = new NumberExprAST(NumVal);
+    getNextToken(); // consume the number
+    return Result;
+}
+
+/// parenexpr ::= '(' expression ')'
+static ExprAST *ParseParenExpr() {
+    getNextToken();  // eat (.
+    ExprAST *V = ParseExpression();
+    if (!V) return 0;
+
+    if (CurTok != ')')
+        return Error("expected ')'");
+    getNextToken();  // eat ).
+    return V;
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
 static ExprAST *ParsePrimary() {
     switch (CurTok) {
-    default: return Error("unknown token when expecting an expression");
-    case tok_identifier: return ParseIdentifierExpr();
-    case tok_number:     return ParseNumberExpr();
-    case '(':            return ParseParenExpr();
+        default: return Error("unknown token when expecting an expression");
+        case tok_identifier: return ParseIdentifierExpr();
+        case tok_number:     return ParseNumberExpr();
+        case '(':            return ParseParenExpr();
     }
-}
-
-
-/// expression
-///   ::= primary binoprhs
-///
-static ExprAST *ParseExpression() {
-    ExprAST *LHS = ParsePrimary();
-    if (!LHS) return 0;
-
-    return ParseBinOpRHS(0, LHS);
 }
 
 /// binoprhs
@@ -277,7 +268,17 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
 
         // Merge LHS/RHS.
         LHS = new BinaryExprAST(BinOp, LHS, RHS);
-    }  // loop around to the top of the while loop.
+    }
+}
+
+/// expression
+///   ::= primary binoprhs
+///
+static ExprAST *ParseExpression() {
+    ExprAST *LHS = ParsePrimary();
+    if (!LHS) return 0;
+
+    return ParseBinOpRHS(0, LHS);
 }
 
 /// prototype
@@ -316,12 +317,6 @@ static FunctionAST *ParseDefinition() {
     return 0;
 }
 
-/// external ::= 'extern' prototype
-static PrototypeAST *ParseExtern() {
-    getNextToken();  // eat extern.
-    return ParsePrototype();
-}
-
 /// toplevelexpr ::= expression
 static FunctionAST *ParseTopLevelExpr() {
     if (ExprAST *E = ParseExpression()) {
@@ -332,16 +327,22 @@ static FunctionAST *ParseTopLevelExpr() {
     return 0;
 }
 
+/// external ::= 'extern' prototype
+static PrototypeAST *ParseExtern() {
+    getNextToken();  // eat extern.
+    return ParsePrototype();
+}
+
 /// top ::= definition | external | expression | ';'
 static void MainLoop() {
     while (1) {
         fprintf(stderr, "ready> ");
         switch (CurTok) {
-        case tok_eof:    return;
-        case ';':        getNextToken(); break;  // ignore top-level semicolons.
-        case tok_def:    HandleDefinition(); break;
-        case tok_extern: HandleExtern(); break;
-        default:         HandleTopLevelExpression(); break;
+            case tok_eof:    return;
+            case ';':        getNextToken(); break;  // ignore top-level semicolons.
+            case tok_def:    HandleDefinition(); break;
+            case tok_extern: HandleExtern(); break;
+            default:         HandleTopLevelExpression(); break;
         }
     }
 }
