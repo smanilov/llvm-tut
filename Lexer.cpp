@@ -245,7 +245,8 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // the pending operator take RHS as its LHS.
         int NextPrec = GetTokPrecedence();
         if (TokPrec < NextPrec) {
-            // ... if body omitted ...
+            RHS = ParseBinOpRHS(TokPrec+1, RHS);
+            if (RHS == 0) return 0;
         }
 
         // Merge LHS/RHS.
