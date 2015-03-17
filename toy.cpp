@@ -1,11 +1,13 @@
+#include "llvm/IR/Module.h"
+using llvm::Value;
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <string>
+using std::string;
 #include <vector>
 
-using std::string;
 
 //===----------------------------------------------------------------------===//
 // Lexer
