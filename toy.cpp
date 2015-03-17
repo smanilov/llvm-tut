@@ -8,7 +8,6 @@ using llvm::Value;
 using std::string;
 #include <vector>
 
-
 //===----------------------------------------------------------------------===//
 // Lexer
 //===----------------------------------------------------------------------===//
@@ -177,6 +176,11 @@ static int GetTokPrecedence() {
 ExprAST *Error(const char *Str) { fprintf(stderr, "Error: %s\n", Str);return 0;}
 PrototypeAST *ErrorP(const char *Str) { Error(Str); return 0; }
 FunctionAST *ErrorF(const char *Str) { Error(Str); return 0; }
+Value *ErrorV(const char *Str) { Error(Str); return 0; }
+
+static Module *TheModule;
+static IRBuilder<> Builder(getGlobalContext());
+static std::map<std::string, Value*> NamedValues;
 
 static ExprAST *ParseExpression();
 
