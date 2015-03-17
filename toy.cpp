@@ -82,6 +82,7 @@ namespace {
     class ExprAST {
         public:
             virtual ~ExprAST() {}
+            virtual Value *Codegen() = 0;
     };
 
     /// NumberExprAST - Expression class for numeric literals like "1.0".
@@ -89,6 +90,7 @@ namespace {
             double Val;
         public:
             NumberExprAST(double val) : Val(val) {}
+            virtual Value *Codegen() = 0;
     };
 
     /// VariableExprAST - Expression class for referencing a variable, like "a".
@@ -96,6 +98,7 @@ namespace {
             std::string Name;
         public:
             VariableExprAST(const std::string &name) : Name(name) {}
+            virtual Value *Codegen() = 0;
     };
 
     /// BinaryExprAST - Expression class for a binary operator.
@@ -105,6 +108,7 @@ namespace {
         public:
             BinaryExprAST(char op, ExprAST *lhs, ExprAST *rhs)
                 : Op(op), LHS(lhs), RHS(rhs) {}
+            virtual Value *Codegen() = 0;
     };
 
     /// CallExprAST - Expression class for function calls.
@@ -114,6 +118,7 @@ namespace {
         public:
             CallExprAST(const std::string &callee, std::vector<ExprAST*> &args)
                 : Callee(callee), Args(args) {}
+            virtual Value *Codegen() = 0;
     };
 
     /// PrototypeAST - This class represents the "prototype" for a function,
@@ -125,7 +130,7 @@ namespace {
         public:
             PrototypeAST(const std::string &name, const std::vector<std::string> &args)
                 : Name(name), Args(args) {}
-
+            virtual Value *Codegen() = 0;
     };
 
     /// FunctionAST - This class represents a function definition itself.
@@ -135,6 +140,7 @@ namespace {
         public:
             FunctionAST(PrototypeAST *proto, ExprAST *body)
                 : Proto(proto), Body(body) {}
+            virtual Value *Codegen() = 0;
     };
 } // end anonymous namespace
 
