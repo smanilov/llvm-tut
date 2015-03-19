@@ -198,6 +198,16 @@ namespace {
                                              Doubles, false);
 
         Function *F = Function::Create(FT, Function::ExternalLinkage, Name, TheModule);
+
+        // If F conflicted, there was already something named 'Name'. Thus the
+        // name of F would implicitly be changed to produce correct output. Use
+        // this to determine whether there was already something named 'Name'.
+        // If it has a body, don't allow redefinition or reextern.
+        if (F->getName() != Name) {
+            // Delete the one we just made and get the existing one.
+            F->eraseFromParent();
+            F = TheModule->getFunction(Name);
+        }
     }
 
     /// FunctionAST - This class represents a function definition itself.
