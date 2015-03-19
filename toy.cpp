@@ -130,6 +130,24 @@ namespace {
             virtual Value *Codegen() = 0;
     };
 
+    Value *BinaryExprAST::Codegen() {
+        Value *L = LHS->Codegen();
+        Value *R = RHS->Codegen();
+        if (L == 0 || R == 0) return 0;
+
+        switch (Op) {
+            case '+': return Builder.CreateFAdd(L, R, "addtmp");
+            case '-': return Builder.CreateFSub(L, R, "subtmp");
+            case '*': return Builder.CreateFMul(L, R, "multmp");
+            case '<':
+                L = Builder.CreateFCmpULT(L, R, "cmptmp");
+                // Convert bool 0/1 to double 0.0 or 1.0
+                return Builder.CreateUIToFP(L, Type::getDoubleTy(getGlobalContext()),
+                                            "booltmp");
+            default: return ErrorV("invalid binary operator");
+        }
+    }
+
     /// CallExprAST - Expression class for function calls.
     class CallExprAST : public ExprAST {
             std::string Callee;
