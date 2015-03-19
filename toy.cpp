@@ -1,4 +1,12 @@
+#include "llvm/IR/DerivedTypes.h"
+using llvm::APFloat;
+#include "llvm/IR/IRBuilder.h"
+using llvm::IRBuilder;
+using llvm::ConstantFP;
+#include "llvm/IR/LLVMContext.h"
+using llvm::getGlobalContext;
 #include "llvm/IR/Module.h"
+using llvm::Module;
 using llvm::Value;
 #include <cctype>
 #include <cstdio>
@@ -91,8 +99,12 @@ namespace {
             double Val;
         public:
             NumberExprAST(double val) : Val(val) {}
-            virtual Value *Codegen() = 0;
+            virtual Value *Codegen();
     };
+
+    Value *NumberExprAST::Codegen() {
+        return ConstantFP::get(getGlobalContext(), APFloat(Val));
+    }
 
     /// VariableExprAST - Expression class for referencing a variable, like "a".
     class VariableExprAST : public ExprAST {
