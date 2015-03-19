@@ -207,7 +207,20 @@ namespace {
             // Delete the one we just made and get the existing one.
             F->eraseFromParent();
             F = TheModule->getFunction(Name);
+
+            // If F already has a body, reject this.
+            if (!F->empty()) {
+                ErrorF("redefinition of function");
+                return 0;
+            }
+
+            // If F took a different number of args, reject.
+            if (F->arg_size() != Args.size()) {
+                ErrorF("redefinition of function with different # args");
+                return 0;
+            }
         }
+
     }
 
     /// FunctionAST - This class represents a function definition itself.
