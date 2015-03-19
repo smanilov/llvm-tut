@@ -256,6 +256,13 @@ namespace {
         Builder.SetInsertPoint(BB);
 
         if (Value *RetVal = Body->Codegen()) {
+            // Finish off the function.
+            Builder.CreateRet(RetVal);
+
+            // Validate the generated code, checking for consistency.
+            verifyFunction(*TheFunction);
+
+            return TheFunction;
         }
     }
 } // end anonymous namespace
