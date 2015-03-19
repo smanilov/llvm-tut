@@ -480,12 +480,15 @@ Function *FunctionAST::Codegen() {
 }
 
 //===----------------------------------------------------------------------===//
-// Top-Level parsing
+// Top-Level parsing and JIT Driver
 //===----------------------------------------------------------------------===//
 
 static void HandleDefinition() {
-    if (ParseDefinition()) {
-        fprintf(stderr, "Parsed a function definition.\n");
+    if (FunctionAST *F = ParseDefinition()) {
+        if (Function *LF = F->Codegen()) {
+            fprintf(stderr, "Parsed a function definition.\n");
+            LF->dump();
+        }
     } else {
         // Skip token for error recovery.
         getNextToken();
@@ -493,8 +496,11 @@ static void HandleDefinition() {
 }
 
 static void HandleExtern() {
-    if (ParseExtern()) {
-        fprintf(stderr, "Parsed an extern\n");
+    if (PrototypeAST *P = ParseExtern()) {
+        if (Function *F = P->Codegen()) {
+            fprintf(stderr, "Parsed an extern\n");
+            F->dump();
+        }
     } else {
         // Skip token for error recovery.
         getNextToken();
@@ -503,8 +509,11 @@ static void HandleExtern() {
 
 static void HandleTopLevelExpression() {
     // Evaluate a top-level expression into an anonymous function.
-    if (ParseTopLevelExpr()) {
-        fprintf(stderr, "Parsed a top-level expr\n");
+    if (FunctionAST *F = ParseTopLevelExpr()) {
+        if (Function *LF = F->Codegen()) {
+            fprintf(stderr, "Parsed a top-level expr\n");
+            LF->dump();
+        }
     } else {
         // Skip token for error recovery.
         getNextToken();
