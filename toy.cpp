@@ -221,6 +221,17 @@ namespace {
             }
         }
 
+        // Set names for all arguments.
+        unsigned Idx = 0;
+        for (Function::arg_iterator AI = F->arg_begin(); Idx != Args.size();
+             ++AI, ++Idx) {
+            AI->setName(Args[Idx]);
+
+            // Add arguments to variable symbol table.
+            NamedValues[Args[Idx]] = AI;
+        }
+
+        return F;
     }
 
     /// FunctionAST - This class represents a function definition itself.
