@@ -8,6 +8,7 @@ using llvm::getGlobalContext;
 #include "llvm/IR/Module.h"
 using llvm::Module;
 using llvm::Value;
+using llvm::Function;
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -181,13 +182,23 @@ namespace {
     /// which captures its name, and its argument names (thus implicitly the number
     /// of arguments the function takes).
     class PrototypeAST {
-            std::string Name;
-            std::vector<std::string> Args;
+            string Name;
+            vector<string> Args;
         public:
-            PrototypeAST(const std::string &name, const std::vector<std::string> &args)
+            PrototypeAST(const string &name, const vector<string> &args)
                 : Name(name), Args(args) {}
             virtual Value *Codegen() = 0;
     };
+
+    Function *PrototypeAST::Codegen() {
+        // Make the function type: double(double,double) etc.
+        vector<Type*> Doubles(Args.size(),
+                              Type::getDoubleTy(getGlobalContext()));
+        FunctionType *FT = FunctionType::get(Type::getDoubleTy(getGlobalContext()),
+                                             Doubles, false);
+
+        Function *F = Function::Create(FT, Function::ExternalLinkage, Name, TheModule);
+    }
 
     /// FunctionAST - This class represents a function definition itself.
     class FunctionAST {
