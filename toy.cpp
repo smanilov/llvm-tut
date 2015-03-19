@@ -250,6 +250,13 @@ namespace {
         Function *TheFunction = Proto->Codegen();
         if (TheFunction == 0)
             return 0;
+
+        // Create a new basic block to start insertion into.
+        BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", TheFunction);
+        Builder.SetInsertPoint(BB);
+
+        if (Value *RetVal = Body->Codegen()) {
+        }
     }
 } // end anonymous namespace
 
