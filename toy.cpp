@@ -264,6 +264,9 @@ namespace {
 
             return TheFunction;
         }
+        // Error reading body, remove function
+        TheFunction->eraseFromParent();
+        return 0;
     }
 } // end anonymous namespace
 
