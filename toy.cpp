@@ -1,3 +1,5 @@
+#include "llvm/IR/Verifier.h"
+using llvm::verifyFunction;
 #include "llvm/IR/DerivedTypes.h"
 using llvm::APFloat;
 #include "llvm/IR/IRBuilder.h"
@@ -9,13 +11,16 @@ using llvm::getGlobalContext;
 using llvm::Module;
 using llvm::Value;
 using llvm::Function;
+
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+using std::map;
 #include <string>
 using std::string;
 #include <vector>
+using std::vector;
 
 //===----------------------------------------------------------------------===//
 // Lexer
@@ -55,7 +60,7 @@ static int gettok() {
     }
 
     if (isdigit(LastChar) || LastChar == '.') {  // Number: [0-9.]+
-        std::string NumStr;
+        string NumStr;
         do {
             NumStr += LastChar;
             LastChar = getchar();
@@ -109,9 +114,9 @@ namespace {
 
     /// VariableExprAST - Expression class for referencing a variable, like "a".
     class VariableExprAST : public ExprAST {
-            std::string Name;
+            string Name;
         public:
-            VariableExprAST(const std::string &name) : Name(name) {}
+            VariableExprAST(const string &name) : Name(name) {}
             virtual Value *Codegen();
     };
 
@@ -151,10 +156,10 @@ namespace {
 
     /// CallExprAST - Expression class for function calls.
     class CallExprAST : public ExprAST {
-            std::string Callee;
-            std::vector<ExprAST*> Args;
+            string Callee;
+            vector<ExprAST*> Args;
         public:
-            CallExprAST(const std::string &callee, std::vector<ExprAST*> &args)
+            CallExprAST(const string &callee, vector<ExprAST*> &args)
                 : Callee(callee), Args(args) {}
             virtual Value *Codegen() = 0;
     };
@@ -169,7 +174,7 @@ namespace {
         if (CalleeF->arg_size() != Args.size())
             return ErrorV("Incorrect # arguments passed");
 
-        std::vector<Value*> ArgsV;
+        vector<Value*> ArgsV;
         for (unsigned i = 0, e = Args.size(); i != e; ++i) {
             ArgsV.push_back(Args[i]->Codegen());
             if (ArgsV.back() == 0) return 0;
@@ -284,7 +289,7 @@ static int getNextToken() {
 
 /// BinopPrecedence - This holds the precedence for each binary operator that is
 /// defined.
-static std::map<char, int> BinopPrecedence;
+static map<char, int> BinopPrecedence;
 
 /// GetTokPrecedence - Get the precedence of the pending binary operator token.
 static int GetTokPrecedence() {
@@ -305,7 +310,7 @@ Value *ErrorV(const char *Str) { Error(Str); return 0; }
 
 static Module *TheModule;
 static IRBuilder<> Builder(getGlobalContext());
-static std::map<std::string, Value*> NamedValues;
+static map<string, Value*> NamedValues;
 
 static ExprAST *ParseExpression();
 
@@ -313,7 +318,7 @@ static ExprAST *ParseExpression();
 ///   ::= identifier
 ///   ::= identifier '(' expression* ')'
 static ExprAST *ParseIdentifierExpr() {
-    std::string IdName = IdentifierStr;
+    string IdName = IdentifierStr;
 
     getNextToken();  // eat identifier.
 
@@ -322,7 +327,7 @@ static ExprAST *ParseIdentifierExpr() {
 
     // Call.
     getNextToken();  // eat (
-    std::vector<ExprAST*> Args;
+    vector<ExprAST*> Args;
     if (CurTok != ')') {
         while (1) {
             ExprAST *Arg = ParseExpression();
@@ -424,14 +429,14 @@ static PrototypeAST *ParsePrototype() {
     if (CurTok != tok_identifier)
         return ErrorP("Expected function name in prototype");
 
-    std::string FnName = IdentifierStr;
+    string FnName = IdentifierStr;
     getNextToken();
 
     if (CurTok != '(')
         return ErrorP("Expected '(' in prototype");
 
     // Read the list of argument names.
-    std::vector<std::string> ArgNames;
+    vector<string> ArgNames;
     while (getNextToken() == tok_identifier)
         ArgNames.push_back(IdentifierStr);
     if (CurTok != ')')
@@ -458,7 +463,7 @@ static FunctionAST *ParseDefinition() {
 static FunctionAST *ParseTopLevelExpr() {
     if (ExprAST *E = ParseExpression()) {
         // Make an anonymous proto.
-        PrototypeAST *Proto = new PrototypeAST("", std::vector<std::string>());
+        PrototypeAST *Proto = new PrototypeAST("", vector<string>());
         return new FunctionAST(Proto, E);
     }
     return 0;
