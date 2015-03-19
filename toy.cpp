@@ -243,6 +243,14 @@ namespace {
                 : Proto(proto), Body(body) {}
             virtual Value *Codegen() = 0;
     };
+
+    Function *FunctionAST::Codegen() {
+        NamedValues.clear();
+
+        Function *TheFunction = Proto->Codegen();
+        if (TheFunction == 0)
+            return 0;
+    }
 } // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
