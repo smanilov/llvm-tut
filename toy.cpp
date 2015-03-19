@@ -564,5 +564,8 @@ int main() {
     // Run the main "interpreter loop" now.
     MainLoop();
 
+    // Print out all of the generated code.
+    TheModule->dump();
+
     return 0;
 }
