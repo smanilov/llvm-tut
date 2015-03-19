@@ -158,6 +158,25 @@ namespace {
             virtual Value *Codegen() = 0;
     };
 
+    Value *CallExprAST::Codegen() {
+        // Look up the name in the global module table.
+        Function *CalleeF = TheModule->getFunction(Callee);
+        if (CalleeF == 0)
+            return ErrorV("Unknown function referenced");
+
+        // If argument mismatch error.
+        if (CalleeF->arg_size() != Args.size())
+            return ErrorV("Incorrect # arguments passed");
+
+        std::vector<Value*> ArgsV;
+        for (unsigned i = 0, e = Args.size(); i != e; ++i) {
+            ArgsV.push_back(Args[i]->Codegen());
+            if (ArgsV.back() == 0) return 0;
+        }
+
+        return Builder.CreateCall(CalleeF, ArgsV, "calltmp");
+    }
+
     /// PrototypeAST - This class represents the "prototype" for a function,
     /// which captures its name, and its argument names (thus implicitly the number
     /// of arguments the function takes).
