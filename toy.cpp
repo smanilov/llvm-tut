@@ -546,6 +546,17 @@ static void MainLoop() {
         }
     }
 }
+//
+//===----------------------------------------------------------------------===//
+// "Library" functions that can be "extern'd" from user code.
+//===----------------------------------------------------------------------===//
+
+// putchard - putchar that takes a double and returns 0.
+extern "C"
+double putchard(double X) {
+    putchar((char)X);
+    return 0;
+}
 
 //===----------------------------------------------------------------------===//
 // Main driver code.
