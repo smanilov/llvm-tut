@@ -2,9 +2,12 @@
 using llvm::verifyFunction;
 #include "llvm/IR/DerivedTypes.h"
 using llvm::APFloat;
+using llvm::Type;
+using llvm::FunctionType;
 #include "llvm/IR/IRBuilder.h"
 using llvm::IRBuilder;
 using llvm::ConstantFP;
+using llvm::BasicBlock;
 #include "llvm/IR/LLVMContext.h"
 using llvm::getGlobalContext;
 #include "llvm/IR/Module.h"
@@ -123,7 +126,7 @@ namespace {
         public:
             BinaryExprAST(char op, ExprAST *lhs, ExprAST *rhs)
                 : Op(op), LHS(lhs), RHS(rhs) {}
-            virtual Value *Codegen() = 0;
+            virtual Value *Codegen();
     };
 
     /// CallExprAST - Expression class for function calls.
@@ -133,7 +136,7 @@ namespace {
         public:
             CallExprAST(const string &callee, vector<ExprAST*> &args)
                 : Callee(callee), Args(args) {}
-            virtual Value *Codegen() = 0;
+            virtual Value *Codegen();
     };
 
     /// PrototypeAST - This class represents the "prototype" for a function,
@@ -145,7 +148,7 @@ namespace {
         public:
             PrototypeAST(const string &name, const vector<string> &args)
                 : Name(name), Args(args) {}
-            virtual Value *Codegen() = 0;
+            virtual Function *Codegen();
     };
 
     /// FunctionAST - This class represents a function definition itself.
@@ -155,7 +158,7 @@ namespace {
         public:
             FunctionAST(PrototypeAST *proto, ExprAST *body)
                 : Proto(proto), Body(body) {}
-            virtual Value *Codegen() = 0;
+            virtual Function *Codegen();
     };
 } // end anonymous namespace
 
