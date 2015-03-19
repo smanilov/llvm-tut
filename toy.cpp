@@ -111,8 +111,14 @@ namespace {
             std::string Name;
         public:
             VariableExprAST(const std::string &name) : Name(name) {}
-            virtual Value *Codegen() = 0;
+            virtual Value *Codegen();
     };
+
+    Value *VariableExprAST::Codegen() {
+        // Look this variable up in the function.
+        Value *V = NamedValues[Name];
+        return V ? V : ErrorV("Unknown variable name");
+    }
 
     /// BinaryExprAST - Expression class for a binary operator.
     class BinaryExprAST : public ExprAST {
