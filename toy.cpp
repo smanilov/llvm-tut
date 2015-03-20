@@ -476,6 +476,8 @@ Function *FunctionAST::Codegen() {
         // Validate the generated code, checking for consistency.
         verifyFunction(*TheFunction);
 
+        TheFPM->run(*TheFunction);
+
         return TheFunction;
     }
     // Error reading body, remove function
