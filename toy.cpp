@@ -553,6 +553,8 @@ double putchard(double X) {
 //===----------------------------------------------------------------------===//
 
 int main() {
+    LLVMContext &Context = getGlobalContext();
+
     // Install standard binary operators.
     // 1 is lowest precedence.
     BinopPrecedence['<'] = 10;
@@ -563,6 +565,9 @@ int main() {
     // Prime the first token.
     fprintf(stderr, "ready> ");
     getNextToken();
+
+    // Make the module, which holds all the code.
+    TheModule = new Module("my cool jit", Context);
 
     // Run the main "interpreter loop" now.
     MainLoop();
