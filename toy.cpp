@@ -559,6 +559,27 @@ int main() {
     // Make the module, which holds all the code.
     TheModule = new Module("my cool jit", Context);
 
+    FunctionPassManager OurFPM(TheModule);
+
+    // Set up the optimizer pipeline. Start with registering info about how the
+    // target lays out data structures.
+    OurFPM.add(new DataLayout(*TheExecutionEngine->getDataLayout()));
+    // Provide basic AliasAnalysis support for GVN.
+    OurFPM.add(createBasicAliasAnalysisPass());
+    // Do simple "peephole" optimizations and bit-twiddling options.
+    OurFPM.add(createInstructionCombiningPass());
+    // Reassociate expressions.
+    OurFPM.add(createReassociatePass());
+    // Eliminate Common SubExpressions.
+    OurFPM.add(createGVNPass());
+    // Simplify the control flow graph (deleting unreachable blocks, etc).
+    OurFPM.add(createCFGSimplificationPass());
+
+    OurFPM.doInitialization();
+
+    // Set the global so the code gen can use this.
+    TheFPM = &OurFPM;
+
     // Run the main "interpreter loop" now.
     MainLoop();
 
