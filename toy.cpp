@@ -14,6 +14,7 @@ using llvm::getGlobalContext;
 using llvm::Module;
 using llvm::Value;
 using llvm::Function;
+using llvm::LLVMContext;
 
 #include <cctype>
 #include <cstdio>
