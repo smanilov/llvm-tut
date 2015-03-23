@@ -360,6 +360,47 @@ static PrototypeAST *ParseExtern() {
 }
 
 //===----------------------------------------------------------------------===//
+// Quick and dirty hack
+//===----------------------------------------------------------------------===//
+
+// FIXME: Obviously we can do better than this
+string GenerateUniqueName(const char *root) {
+    static int i = 0;
+    char s[16];
+    sprintf(s, "%s%d", root, i++);
+    string S = s;
+    return S;
+}
+
+string MakeLegalFunctionName(string Name) {
+    string NewName;
+    if (!Name.length())
+        return GenerateUniqueName("anon_func_");
+
+    // Start with what we have
+    NewName = Name;
+
+    // Look for a numeric first character
+    if (NewName.find_first_of("0123456789") == 0) {
+        NewName.insert(0, 1, 'n');
+    }
+
+    // Replace illegal characters with their ASCII equivalent
+    string legal_elements =
+        "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    size_t pos;
+    while ((pos = NewName.find_first_not_of(legal_elements)) !=
+            string::npos) {
+        char old_c = NewName.at(pos);
+        char new_str[16];
+        sprintf(new_str, "%d", (int)old_c);
+        NewName = NewName.replace(pos, 1, new_str);
+    }
+
+    return NewName;
+}
+
+//===----------------------------------------------------------------------===//
 // MCJIT helper class
 //===----------------------------------------------------------------------===//
 
@@ -613,9 +654,11 @@ Function *PrototypeAST::Codegen() {
     FunctionType *FT = FunctionType::get(Type::getDoubleTy(getGlobalContext()),
                                          Doubles, false);
 
+    string FnName = MakeLegalFunctionName(Name);
+
     Module *M = JITHelper->getModuleForNewFunction();
 
-    Function *F = Function::Create(FT, Function::ExternalLinkage, Name, M);
+    Function *F = Function::Create(FT, Function::ExternalLinkage, FnName, M);
 
     // If F conflicted, there was already something named 'Name'. Thus the
     // name of F would implicitly be changed to produce correct output. Use
