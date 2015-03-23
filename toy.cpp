@@ -563,6 +563,9 @@ int main() {
 
     FunctionPassManager OurFPM(TheModule);
 
+    // Create the JIT. This takes ownership of the module.
+    TheExecutionEngine = EngineBuilder(TheModule).create();
+
     // Set up the optimizer pipeline. Start with registering info about how the
     // target lays out data structures.
     OurFPM.add(new DataLayout(*TheExecutionEngine->getDataLayout()));
