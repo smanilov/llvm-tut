@@ -476,8 +476,6 @@ Function *FunctionAST::Codegen() {
         // Validate the generated code, checking for consistency.
         verifyFunction(*TheFunction);
 
-        TheFPM->run(*TheFunction);
-
         return TheFunction;
     }
     // Error reading body, remove function
@@ -562,27 +560,43 @@ double putchard(double X) {
 // Refactoring in progress...
 //===----------------------------------------------------------------------===//
 
-void getPointerToFunction(Function *F) {
-    FunctionPassManager OurFPM(TheModule);
+class MCJITHelper {
+public:
+    void *getPointerToFunction(Function *F);
+private:
+    Module *OpenModule;
+};
+
+void *MCJITHelper::getPointerToFunction(Function *F) {
+    auto *FPM = new legacy::FunctionPassManager(OpenModule);
 
     // Set up the optimizer pipeline. Start with registering info about how the
     // target lays out data structures.
-    OurFPM.add(new DataLayout(*TheExecutionEngine->getDataLayout()));
+    FPM.add(new DataLayout(*TheExecutionEngine->getDataLayout()));
     // Provide basic AliasAnalysis support for GVN.
-    OurFPM.add(createBasicAliasAnalysisPass());
+    FPM.add(createBasicAliasAnalysisPass());
     // Do simple "peephole" optimizations and bit-twiddling options.
-    OurFPM.add(createInstructionCombiningPass());
+    FPM.add(createInstructionCombiningPass());
     // Reassociate expressions.
-    OurFPM.add(createReassociatePass());
+    FPM.add(createReassociatePass());
     // Eliminate Common SubExpressions.
-    OurFPM.add(createGVNPass());
+    FPM.add(createGVNPass());
     // Simplify the control flow graph (deleting unreachable blocks, etc).
-    OurFPM.add(createCFGSimplificationPass());
+    FPM.add(createCFGSimplificationPass());
+    FPM.doInitialization();
 
-    OurFPM.doInitialization();
+    // For each function in the module
+    Module::iterator it;
+    Module::iterator end = OpenModule->end();
+    for (it = OpenModule->begin(); it != end; ++it) {
+        // Run the FPM on this function
+        FPM->run(*it);
+    }
 
-    // Set the global so the code gen can use this.
-    TheFPM = &OurFPM;
+    // We don't need this anymore
+    delete FPM;
+
+    return null;
 }
 
 //===----------------------------------------------------------------------===//
