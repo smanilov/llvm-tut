@@ -569,6 +569,7 @@ public:
     Module *getModuleForNewFunction();
     void *getPointerToFunction(Function *F);
     void *getSymbolAddress(const string *Name);
+    void dump();
 
 private:
     typedef vector<Module *> ModuleVector;
@@ -609,6 +610,16 @@ uint64_t HelpingMemoryManager::getSymbolAddress(const string &Name) {
                            "' which could not be resolved!");
 
     return HelperFun;
+}
+
+MCJITHelper::~MCJITHelper() {
+    if (OpenModule)
+        delete OpenModule;
+    EngineVector::iterator begin = Engines.begin();
+    EngineVector::iterator end = Engines.end();
+    EngineVector::iterator it;
+    for (it = begin; it != end; ++it)
+        delete *it;
 }
 
 Function *MCJITHelper::getFunction(const string FnName) {
@@ -727,6 +738,14 @@ void *MCJITHelper::getSymbolAddress(const string &Name) {
         }
     }
     return NULL;
+}
+
+void *MCJITHelper::dump() {
+    ModuleVector::iterator begin = Modules.begin();
+    ModuleVector::iterator end = Modules.end();
+    ModuleVector::iterator it;
+    for (it = begin; it != end; ++it)
+        (*it)->dump();
 }
 
 //===----------------------------------------------------------------------===//
