@@ -562,6 +562,9 @@ double putchard(double X) {
 
 class MCJITHelper {
 public:
+    MCJITHelper(LLVMContext &C) : Context(C), OpenModule(NULL) {}
+    ~MCJITHelper();
+
     Function *getFunction(const string FnName);
     Module *getModuleForNewFunction();
     void *getPointerToFunction(Function *F);
@@ -570,6 +573,7 @@ private:
     typedef vector<Module *> ModuleVector;
     typedef vector<ExecutionEngine *> EngineVector;
 
+    LLVMContext &Context;
     Module *OpenModule;
     ModuleVector Modules;
     EngineVector Engines;
@@ -685,7 +689,11 @@ void *MCJITHelper::getPointerToFunction(Function *F) {
 //===----------------------------------------------------------------------===//
 
 int main() {
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
     LLVMContext &Context = getGlobalContext();
+    JITHelper = new MCJITHelper(Context);
 
     // Install standard binary operators.
     // 1 is lowest precedence.
