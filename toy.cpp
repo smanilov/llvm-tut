@@ -517,8 +517,15 @@ static void HandleTopLevelExpression() {
     // Evaluate a top-level expression into an anonymous function.
     if (FunctionAST *F = ParseTopLevelExpr()) {
         if (Function *LF = F->Codegen()) {
-            fprintf(stderr, "Parsed a top-level expr\n");
-            LF->dump();
+            LF->dump();  // Dump the function for exposition purposes.
+
+            // JIT the function, returning a function pointer.
+            void *FPtr = TheExecutionEngine->getPointerToFunction(LF);
+
+            // Cast it to the right type (takes no arguments, returns a double)
+            // so we can call it as a native function.
+            double (*FP)() = (double (*)())(intptr_t)FPtr;
+            fprintf(stderr, "Evaluated to %f\n", FP());
         }
     } else {
         // Skip token for error recovery.
