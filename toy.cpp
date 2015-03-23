@@ -517,10 +517,8 @@ static void HandleTopLevelExpression() {
     // Evaluate a top-level expression into an anonymous function.
     if (FunctionAST *F = ParseTopLevelExpr()) {
         if (Function *LF = F->Codegen()) {
-            LF->dump();  // Dump the function for exposition purposes.
-
             // JIT the function, returning a function pointer.
-            void *FPtr = TheExecutionEngine->getPointerToFunction(LF);
+            void *FPtr = JITHelper->getPointerToFunction(LF);
 
             // Cast it to the right type (takes no arguments, returns a double)
             // so we can call it as a native function.
@@ -569,7 +567,12 @@ public:
     void *getPointerToFunction(Function *F);
 
 private:
+    typedef vector<Module *> ModuleVector;
+    typedef vector<ExecutionEngine *> EngineVector;
+
     Module *OpenModule;
+    ModuleVector Modules;
+    EngineVector Engines;
 };
 
 Function *MCJITHelper::getFunction(const string FnName) {
@@ -616,34 +619,64 @@ Module *MCJITHelper::getModuleForNewFunction() {
 }
 
 void *MCJITHelper::getPointerToFunction(Function *F) {
-    auto *FPM = new legacy::FunctionPassManager(OpenModule);
-
-    // Set up the optimizer pipeline. Start with registering info about how the
-    // target lays out data structures.
-    FPM.add(new DataLayout(*TheExecutionEngine->getDataLayout()));
-    // Provide basic AliasAnalysis support for GVN.
-    FPM.add(createBasicAliasAnalysisPass());
-    // Do simple "peephole" optimizations and bit-twiddling options.
-    FPM.add(createInstructionCombiningPass());
-    // Reassociate expressions.
-    FPM.add(createReassociatePass());
-    // Eliminate Common SubExpressions.
-    FPM.add(createGVNPass());
-    // Simplify the control flow graph (deleting unreachable blocks, etc).
-    FPM.add(createCFGSimplificationPass());
-    FPM.doInitialization();
-
-    // For each function in the module
-    Module::iterator it;
-    Module::iterator end = OpenModule->end();
-    for (it = OpenModule->begin(); it != end; ++it) {
-        // Run the FPM on this function
-        FPM->run(*it);
+    // See if an existing instance of MCJIT has this function
+    EngineVector::iterator begin = Engines.begin();
+    EngineVector::iterator end = Engines.end();
+    EngineVector::iterator it;
+    for (it = begin; it != end; ++it) {
+        void *P = (*it)->getPointerToFunction(F);
+        if (P)
+            return P;
     }
 
-    // We don't need this anymore
-    delete FPM;
+    // Generate the function
+    if (OpenModule) {
+        string ErrStr;
+        ExecutionEngine *NewEngine =
+            EngineBuilder(unique_ptr<Module>(OpenModule))
+                .setErrorStr(&ErrStr)
+                .setMCJITMemoryManager(unique_ptr<HelpingMemoryManager>(
+                    new HelpingMemoryManager(this)))
+                .create();
+        if (!NewEngine) {
+            fprintf(stderr, "Could not create ExecutionEngine: %s\n", ErrStr.c_str());
+            exit(1);
+        }
 
+        // Create a function pass manager for this engine
+        auto *FPM = new legacy::FunctionPassManager(OpenModule);
+
+        // Set up the optimizer pipeline. Start with registering info about how the
+        // target lays out data structures.
+        OpenModule->setDataLayout(*NewEngine->getDataLayout());
+        // Provide basic AliasAnalysis support for GVN.
+        FPM.add(createBasicAliasAnalysisPass());
+        // Do simple "peephole" optimizations and bit-twiddling options.
+        FPM.add(createInstructionCombiningPass());
+        // Reassociate expressions.
+        FPM.add(createReassociatePass());
+        // Eliminate Common SubExpressions.
+        FPM.add(createGVNPass());
+        // Simplify the control flow graph (deleting unreachable blocks, etc).
+        FPM.add(createCFGSimplificationPass());
+        FPM.doInitialization();
+
+        // For each function in the module
+        Module::iterator it;
+        Module::iterator end = OpenModule->end();
+        for (it = OpenModule->begin(); it != end; ++it) {
+            // Run the FPM on this function
+            FPM->run(*it);
+        }
+
+        // We don't need this anymore
+        delete FPM;
+
+        OpenModule = NULL;
+        Engines.push_back(NewEngine);
+        NewEngine->finalizeObject();
+        return NewEngine->getPointerToFunction(F);
+    }
     return null;
 }
 
@@ -664,9 +697,6 @@ int main() {
     // Prime the first token.
     fprintf(stderr, "ready> ");
     getNextToken();
-
-    // Create the JIT. This takes ownership of the module.
-    TheExecutionEngine = EngineBuilder(...).create();
 
     // Run the main "interpreter loop" now.
     MainLoop();
