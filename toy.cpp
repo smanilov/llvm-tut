@@ -541,16 +541,18 @@ void *MCJITHelper::getPointerToFunction(Function *F) {
         // target lays out data structures.
         OpenModule->setDataLayout(*NewEngine->getDataLayout());
         // Provide basic AliasAnalysis support for GVN.
-        FPM.add(createBasicAliasAnalysisPass());
+        FPM->add(createBasicAliasAnalysisPass());
+        // Promote allocas to registers.
+        FPM->add(createPromoteMemoryToRegisterPass());
         // Do simple "peephole" optimizations and bit-twiddling options.
-        FPM.add(createInstructionCombiningPass());
+        FPM->add(createInstructionCombiningPass());
         // Reassociate expressions.
-        FPM.add(createReassociatePass());
+        FPM->add(createReassociatePass());
         // Eliminate Common SubExpressions.
-        FPM.add(createGVNPass());
+        FPM->add(createGVNPass());
         // Simplify the control flow graph (deleting unreachable blocks, etc).
-        FPM.add(createCFGSimplificationPass());
-        FPM.doInitialization();
+        FPM->add(createCFGSimplificationPass());
+        FPM->doInitialization();
 
         // For each function in the module
         Module::iterator it;
