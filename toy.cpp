@@ -568,6 +568,7 @@ public:
     Function *getFunction(const string FnName);
     Module *getModuleForNewFunction();
     void *getPointerToFunction(Function *F);
+    void *getSymbolAddress(const string *Name);
 
 private:
     typedef vector<Module *> ModuleVector;
@@ -578,6 +579,37 @@ private:
     ModuleVector Modules;
     EngineVector Engines;
 };
+
+class HelpingMemoryManager : public SectionMemoryManager {
+    HelpingMemoryManager(const HelpingMemoryManager &) = delete;
+    void operator=(const HelpingMemoryManager &) = delete;
+
+public:
+    HelpingMemoryManager(MCJITHelper *Helper) : MasterHelper(Helper) {}
+    virtual ~HelpingMemoryManager() {}
+
+    /// This method returns the address of the specified symbol.
+    /// Our implementation will attempt to find symbols in other modules
+    /// associated with the MCJITHelper to cross link symbols from one generated
+    /// module to another.
+    virtual uint64_t getSymbolAddress(const string &Name) override;
+
+private:
+    MCJITHelper *MasterHelper;
+};
+
+uint64_t HelpingMemoryManager::getSymbolAddress(const string &Name) {
+    uint64_t FnAddr = SectionMemoryManager::getSymbolAddress(Name);
+    if (FnAddr)
+        return FnAddr;
+
+    uint64_t HelperFun = (uint64_t)MasterHelper->getSymbolAddress(Name);
+    if (!HelperFun)
+        report_fatal_error("Program used extern function '" + Name +
+                           "' which could not be resolved!");
+
+    return HelperFun;
+}
 
 Function *MCJITHelper::getFunction(const string FnName) {
     ModuleVector::iterator begin = Modules.begin();
@@ -682,6 +714,19 @@ void *MCJITHelper::getPointerToFunction(Function *F) {
         return NewEngine->getPointerToFunction(F);
     }
     return null;
+}
+
+void *MCJITHelper::getSymbolAddress(const string &Name) {
+    EngineVector::iterator begin = Engines.begin();
+    EngineVector::iterator end = Engines.end();
+    EngineVector::iterator it;
+    for (it = begin; it != end; ++it) {
+        uint64_t FAddr = (*it)->getFunctionAddress(Name);
+        if (FAddr) {
+            return (void *)FAddr;
+        }
+    }
+    return NULL;
 }
 
 //===----------------------------------------------------------------------===//
