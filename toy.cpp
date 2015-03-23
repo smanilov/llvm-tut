@@ -363,7 +363,7 @@ static PrototypeAST *ParseExtern() {
 // Code Generation 
 //===----------------------------------------------------------------------===//
 
-static Module *TheModule;
+static MCJITHelper *JITHelper;
 static IRBuilder<> Builder(getGlobalContext());
 static map<string, Value*> NamedValues;
 
@@ -397,7 +397,7 @@ Value *BinaryExprAST::Codegen() {
 
 Value *CallExprAST::Codegen() {
     // Look up the name in the global module table.
-    Function *CalleeF = TheModule->getFunction(Callee);
+    Function *CalleeF = JITHelper->getFunction(Callee);
     if (CalleeF == 0)
         return ErrorV("Unknown function referenced");
 
@@ -421,7 +421,9 @@ Function *PrototypeAST::Codegen() {
     FunctionType *FT = FunctionType::get(Type::getDoubleTy(getGlobalContext()),
                                          Doubles, false);
 
-    Function *F = Function::Create(FT, Function::ExternalLinkage, Name, TheModule);
+    Module *M = JITHelper->getModuleForNewFunction();
+
+    Function *F = Function::Create(FT, Function::ExternalLinkage, Name, M);
 
     // If F conflicted, there was already something named 'Name'. Thus the
     // name of F would implicitly be changed to produce correct output. Use
@@ -430,7 +432,7 @@ Function *PrototypeAST::Codegen() {
     if (F->getName() != Name) {
         // Delete the one we just made and get the existing one.
         F->eraseFromParent();
-        F = TheModule->getFunction(Name);
+        F = JITHelper->getFunction(Name);
 
         // If F already has a body, reject this.
         if (!F->empty()) {
@@ -562,10 +564,56 @@ double putchard(double X) {
 
 class MCJITHelper {
 public:
+    Function *getFunction(const string FnName);
+    Module *getModuleForNewFunction();
     void *getPointerToFunction(Function *F);
+
 private:
     Module *OpenModule;
 };
+
+Function *MCJITHelper::getFunction(const string FnName) {
+    ModuleVector::iterator begin = Modules.begin();
+    ModuleVector::iterator end = Modules.end();
+    ModuleVector::iterator it;
+    for (it = begin; it != end; ++it) {
+        Function *F = (*it)->getFunction(FnName);
+        if (F) {
+            if (*it == OpenModule)
+                return F;
+
+            assert(OpenModule != NULL);
+
+            // This function is in a module that has already been JITed.
+            // We need to generate a new prototype for external linkage.
+            Function *PF = OpenModule->getFunction(FnName);
+            if (PF && !PF->empty()) {
+                ErrorF("redefinition of function across modules");
+                return 0;
+            }
+
+            // If we don't have a prototype yet, create one.
+            if (!PF)
+                PF = Function::Create(F->getFunctionType(),
+                        Function::ExternalLinkage, FnName, OpenModule);
+            return PF;
+        }
+    }
+    return NULL;
+}
+
+Module *MCJITHelper::getModuleForNewFunction() {
+    // If we have a Module that hasn't been JITed, use that.
+    if (OpenModule)
+        return OpenModule;
+
+    // Otherwise create a new Module.
+    string ModName = GenerateUniqueName("mcjit_module_");
+    Module *M = new Module(ModName, Context);
+    Modules.push_back(M);
+    OpenModule = M;
+    return M;
+}
 
 void *MCJITHelper::getPointerToFunction(Function *F) {
     auto *FPM = new legacy::FunctionPassManager(OpenModule);
@@ -617,17 +665,14 @@ int main() {
     fprintf(stderr, "ready> ");
     getNextToken();
 
-    // Make the module, which holds all the code.
-    TheModule = new Module("my cool jit", Context);
-
     // Create the JIT. This takes ownership of the module.
-    TheExecutionEngine = EngineBuilder(TheModule).create();
+    TheExecutionEngine = EngineBuilder(...).create();
 
     // Run the main "interpreter loop" now.
     MainLoop();
 
     // Print out all of the generated code.
-    TheModule->dump();
+    JITHelper->dump();
 
     return 0;
 }
