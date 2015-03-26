@@ -793,7 +793,6 @@ double putchard(double X) {
     return 0;
 }
 
-
 //===----------------------------------------------------------------------===//
 // Main driver code.
 //===----------------------------------------------------------------------===//
@@ -815,6 +814,9 @@ int main() {
     // Prime the first token.
     fprintf(stderr, "ready> ");
     getNextToken();
+
+    // Make the module, which holds all the code.
+    TheModule = new Module("my cool jit", Context);
 
     // Run the main "interpreter loop" now.
     MainLoop();
