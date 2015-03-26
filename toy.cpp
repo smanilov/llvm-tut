@@ -1,20 +1,47 @@
-#include "llvm/IR/Verifier.h"
-using llvm::verifyFunction;
-#include "llvm/IR/DerivedTypes.h"
-using llvm::APFloat;
-using llvm::Type;
-using llvm::FunctionType;
-#include "llvm/IR/IRBuilder.h"
-using llvm::IRBuilder;
-using llvm::ConstantFP;
-using llvm::BasicBlock;
+#include "llvm/Support/TargetSelect.h"
+using llvm::InitializeNativeTarget;
+using llvm::InitializeNativeTargetAsmPrinter;
+using llvm::InitializeNativeTargetAsmParser;
 #include "llvm/IR/LLVMContext.h"
 using llvm::getGlobalContext;
+using llvm::LLVMContext;
 #include "llvm/IR/Module.h"
 using llvm::Module;
 using llvm::Value;
 using llvm::Function;
-using llvm::LLVMContext;
+#include "llvm/IR/IRBuilder.h"
+using llvm::IRBuilder;
+using llvm::ConstantFP;
+using llvm::BasicBlock;
+#include "llvm/IR/DerivedTypes.h"
+using llvm::APFloat;
+using llvm::Type;
+using llvm::FunctionType;
+#include "llvm/IR/Verifier.h"
+using llvm::verifyFunction;
+#include "llvm/Support/ErrorHandling.h"
+using llvm::report_fatal_error;
+
+#include "llvm/ExecutionEngine/MCJIT.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
+using llvm::ExecutionEngine;
+using llvm::EngineBuilder;
+
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+using llvm::SectionMemoryManager;
+#include "llvm/IR/LegacyPassManager.h"
+using llvm::legacy::FunctionPassManager;
+#include "llvm/Analysis/Passes.h"
+using llvm::createBasicAliasAnalysisPass;
+#include "llvm/Transforms/Scalar.h"
+using llvm::createInstructionCombiningPass;
+using llvm::createPromoteMemoryToRegisterPass;
+using llvm::createReassociatePass;
+using llvm::createPromoteMemoryToRegisterPass;
+using llvm::createGVNPass;
+using llvm::createCFGSimplificationPass;
+
+
 
 #include <cctype>
 #include <cstdio>
@@ -25,6 +52,8 @@ using std::map;
 using std::string;
 #include <vector>
 using std::vector;
+#include <memory>
+using std::unique_ptr;
 
 //===----------------------------------------------------------------------===//
 // Lexer
@@ -412,7 +441,7 @@ public:
     Function *getFunction(const string FnName);
     Module *getModuleForNewFunction();
     void *getPointerToFunction(Function *F);
-    void *getSymbolAddress(const string *Name);
+    void *getSymbolAddress(const string &Name);
     void dump();
 
 private:
@@ -470,6 +499,7 @@ Function *MCJITHelper::getFunction(const string FnName) {
     ModuleVector::iterator begin = Modules.begin();
     ModuleVector::iterator end = Modules.end();
     ModuleVector::iterator it;
+
     for (it = begin; it != end; ++it) {
         Function *F = (*it)->getFunction(FnName);
         if (F) {
@@ -535,11 +565,11 @@ void *MCJITHelper::getPointerToFunction(Function *F) {
         }
 
         // Create a function pass manager for this engine
-        auto *FPM = new legacy::FunctionPassManager(OpenModule);
+        auto *FPM = new FunctionPassManager(OpenModule);
 
         // Set up the optimizer pipeline. Start with registering info about how the
         // target lays out data structures.
-        OpenModule->setDataLayout(*NewEngine->getDataLayout());
+        OpenModule->setDataLayout(NewEngine->getDataLayout());  // TODO: report bug
         // Provide basic AliasAnalysis support for GVN.
         FPM->add(createBasicAliasAnalysisPass());
         // Promote allocas to registers.
@@ -570,7 +600,7 @@ void *MCJITHelper::getPointerToFunction(Function *F) {
         NewEngine->finalizeObject();
         return NewEngine->getPointerToFunction(F);
     }
-    return null;
+    return NULL;
 }
 
 void *MCJITHelper::getSymbolAddress(const string &Name) {
@@ -586,7 +616,7 @@ void *MCJITHelper::getSymbolAddress(const string &Name) {
     return NULL;
 }
 
-void *MCJITHelper::dump() {
+void MCJITHelper::dump() {
     ModuleVector::iterator begin = Modules.begin();
     ModuleVector::iterator end = Modules.end();
     ModuleVector::iterator it;
@@ -662,11 +692,9 @@ Function *PrototypeAST::Codegen() {
 
     Function *F = Function::Create(FT, Function::ExternalLinkage, FnName, M);
 
-    // If F conflicted, there was already something named 'Name'. Thus the
-    // name of F would implicitly be changed to produce correct output. Use
-    // this to determine whether there was already something named 'Name'.
+    // If F conflicted, there was already something named 'FnName'.
     // If it has a body, don't allow redefinition or reextern.
-    if (F->getName() != Name) {
+    if (F->getName() != FnName) {
         // Delete the one we just made and get the existing one.
         F->eraseFromParent();
         F = JITHelper->getFunction(Name);
@@ -814,9 +842,6 @@ int main() {
     // Prime the first token.
     fprintf(stderr, "ready> ");
     getNextToken();
-
-    // Make the module, which holds all the code.
-    TheModule = new Module("my cool jit", Context);
 
     // Run the main "interpreter loop" now.
     MainLoop();
