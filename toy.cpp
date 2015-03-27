@@ -68,7 +68,10 @@ enum Token {
     tok_def = -2, tok_extern = -3,
 
     // primary
-    tok_identifier = -4, tok_number = -5
+    tok_identifier = -4, tok_number = -5,
+
+    // control
+    tok_if = -6, tok_then = -7, tok_else = -8,
 };
 
 static string IdentifierStr;  // Filled in if tok_identifier
@@ -89,6 +92,9 @@ static int gettok() {
 
         if (IdentifierStr == "def") return tok_def;
         if (IdentifierStr == "extern") return tok_extern;
+        if (IdentifierStr == "if") return tok_if;
+        if (IdentifierStr == "then") return tok_then;
+        if (IdentifierStr == "else") return tok_else;
         return tok_identifier;
     }
 
