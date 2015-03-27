@@ -304,6 +304,7 @@ static ExprAST *ParsePrimary() {
         case tok_identifier: return ParseIdentifierExpr();
         case tok_number:     return ParseNumberExpr();
         case '(':            return ParseParenExpr();
+        case tok_if:         return ParseIfExpr();
     }
 }
 
@@ -339,6 +340,31 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         LHS = new BinaryExprAST(BinOp, LHS, RHS);
     }
 }
+
+// ifexpr ::= 'if' expression 'then' expression 'else' expression
+static ExprAST *ParseIfExpr() {
+    getNextToken();  // eat the if.
+
+    // condition.
+    ExprAST *Cond = ParseExpression();
+    if (!Cond) return 0;
+
+    if (CurTok != tok_then)
+        return Error("expected then");
+    getNextToken();  // eat the then
+
+    ExprAST *Then = ParseExpression();
+    if (Then == 0) return 0;
+
+    if (CurTok != tok_else)
+        return Error("expected else");
+
+    getNextToken();  // eat the else
+
+    ExprAST *Else = ParseExpression();
+    if (!Else) return 0;
+
+    return new IfExprAST(Cond, Then, Else);
 
 /// expression
 ///   ::= primary binoprhs
@@ -639,7 +665,7 @@ void MCJITHelper::dump() {
 }
 
 //===----------------------------------------------------------------------===//
-// Code Generation 
+// Code Generation
 //===----------------------------------------------------------------------===//
 
 static MCJITHelper *JITHelper;
