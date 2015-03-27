@@ -175,6 +175,14 @@ namespace {
             virtual Value *Codegen();
     };
 
+    class IfExprAST : public ExprAST {
+            ExprAST *Cond, *Then, *Else;
+        public:
+            IFExprAST(ExprAST *cond, ExprAST *then, ExprAST *_else)
+                : Cond(cond), Then(then), Else(_else) {}
+            virtual Value *Codegen();
+    };
+
     /// PrototypeAST - This class represents the "prototype" for a function,
     /// which captures its name, and its argument names (thus implicitly the number
     /// of arguments the function takes).
