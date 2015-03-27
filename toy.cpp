@@ -729,6 +729,16 @@ Value *IfExprAST::Codegen() {
                 ConstantFP::get(getGlobalContext(), APFloat(0.0)),
                 "ifcond"
     );
+
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
+
+    // Create blocks for the then and else cases. Insert the 'then' block at the
+    // end of the function
+    BasicBlock *ThenBB = BasicBlock::Create(getGlobalContext(), "then", TheFunction);
+    BasicBlock *ElseBB = BasicBlock::Create(getGlobalContext(), "else");
+    BasicBlock *MergeBB = BasicBlock::Create(getGlobalContext(), "ifcont");
+
+    Builder.CreateCondBr(CondV, ThenBB, ElseBB);
 }
 
 Function *PrototypeAST::Codegen() {
