@@ -719,6 +719,18 @@ Value *CallExprAST::Codegen() {
     return Builder.CreateCall(CalleeF, ArgsV, "calltmp");
 }
 
+Value *IfExprAST::Codegen() {
+    Value *CondV = Cond->Codegen();
+    if (CondV == 0) return 0;
+
+    // Convert condition to a bool by comparing equal to 0.0.
+    CondV = Builder.CreateFCmpONE(
+                CondV,
+                ConstantFP::get(getGlobalContext(), APFloat(0.0)),
+                "ifcond"
+    );
+}
+
 Function *PrototypeAST::Codegen() {
     // Make the function type: double(double,double) etc.
     vector<Type*> Doubles(Args.size(),
