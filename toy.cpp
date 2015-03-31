@@ -734,11 +734,22 @@ Value *IfExprAST::Codegen() {
 
     // Create blocks for the then and else cases. Insert the 'then' block at the
     // end of the function
-    BasicBlock *ThenBB = BasicBlock::Create(getGlobalContext(), "then", TheFunction);
+    BasicBlock *ThenBB = BasicBlock::Create(getGlobalContext(), "then",
+                                            TheFunction);
     BasicBlock *ElseBB = BasicBlock::Create(getGlobalContext(), "else");
     BasicBlock *MergeBB = BasicBlock::Create(getGlobalContext(), "ifcont");
 
     Builder.CreateCondBr(CondV, ThenBB, ElseBB);
+
+    // Emit then value.
+    Builder.SetInsertPoint(ThenBB);
+
+    Value *ThenV = Then->Codegen();
+    if (ThenV == 0) return 0;
+
+    Builder.CreateBr(MergeBB);
+    // Codegen of 'Then' can change the current block, update ThenBB for the PHI
+    ThenBB = Builder.GetInsertBlock();
 }
 
 Function *PrototypeAST::Codegen() {
