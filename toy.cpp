@@ -186,6 +186,17 @@ namespace {
             virtual Value *Codegen();
     };
 
+    class ForExprAST : public ExprAST {
+            string VarName;
+            ExprAST *Start, *End, *Step, *Body;
+        public:
+            ForExprAST(const string &varname, ExprAST *start, ExprAST *end,
+                       ExprAST *step, ExprAST *body)
+                : VarName(varname), Start(start), End(end), Step(step),
+                  Body(body) {}
+            virtual Value *Codegen();
+    };
+
     /// PrototypeAST - This class represents the "prototype" for a function,
     /// which captures its name, and its argument names (thus implicitly the number
     /// of arguments the function takes).
