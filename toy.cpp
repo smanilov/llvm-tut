@@ -750,6 +750,17 @@ Value *IfExprAST::Codegen() {
     Builder.CreateBr(MergeBB);
     // Codegen of 'Then' can change the current block, update ThenBB for the PHI
     ThenBB = Builder.GetInsertBlock();
+
+    // Emit else block.
+    TheFunction->getBasicBlockList().push_back(ElseBB);
+    Builder.SetInsertPoint(ElseBB);
+
+    Value *ElseV = Else->Codegen();
+    if (ElseV == 0) return 0;
+
+    Builder.CreateBr(MergeBB);
+    // Codegen of 'Else' can change the current block, update ElseBB for the PHI
+    ElseBB = Builder.GetInsertBlock();
 }
 
 Function *PrototypeAST::Codegen() {
