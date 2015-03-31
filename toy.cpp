@@ -72,6 +72,7 @@ enum Token {
 
     // control
     tok_if = -6, tok_then = -7, tok_else = -8,
+    tok_for = -9, tok_in = -10,
 };
 
 static string IdentifierStr;  // Filled in if tok_identifier
@@ -95,6 +96,8 @@ static int gettok() {
         if (IdentifierStr == "if") return tok_if;
         if (IdentifierStr == "then") return tok_then;
         if (IdentifierStr == "else") return tok_else;
+        if (IdentifierStr == "for") return tok_for;
+        if (IdentifierStr == "in") return tok_in;
         return tok_identifier;
     }
 
