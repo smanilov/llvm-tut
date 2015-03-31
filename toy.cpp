@@ -319,6 +319,7 @@ static ExprAST *ParsePrimary() {
         case tok_number:     return ParseNumberExpr();
         case '(':            return ParseParenExpr();
         case tok_if:         return ParseIfExpr();
+        case tok_for:        return ParseForExpr();
     }
 }
 
@@ -379,6 +380,44 @@ static ExprAST *ParseIfExpr() {
     if (!Else) return 0;
 
     return new IfExprAST(Cond, Then, Else);
+}
+
+/// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
+static ExprAST *ParseForExpr() {
+    getNextToken();  // eat the for
+
+    if (CurTok != tok_identifier)
+        return Error("expected identifier after for");
+
+    string IdName = IdentifierStr;
+    getNextToken();  // eat identifier
+
+    ExprAST *Start = ParseExpression();
+    if (start == 0) return 0;
+    if (CurTok != ',')
+        return Error("expected ',' after for start value");
+    getNextToken();
+
+    ExprAST *End = ParseExpression();
+    if (End == 0) return 0;
+
+    // The step value is optional
+    ExprAST *Step = 0;
+    if (CurTok == ',') {
+        getNextToken();
+        Step = ParseExpression();
+        if (Step == 0) return 0;
+    }
+
+    if (CurTok != tok_in)
+        return Error("expected 'in' after for");
+    getNextToken();  // eat 'in'
+
+    ExprAST *Body = ParseExpression();
+    if (Body == 0) return 0;
+
+    return new ForExprAST(IdName, Start, End, Step, Body);
+}
 
 /// expression
 ///   ::= primary binoprhs
