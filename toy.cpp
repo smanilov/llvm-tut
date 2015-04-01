@@ -869,6 +869,16 @@ Value *ForExprAST::codegen() {
     }
 
     Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
+
+    // Compute the end condition.
+    Value *EndCond = End->Codegen();
+    if (EndCond == 0) return EndCond;
+
+    // Convert condition to a bool by comparing equal to 0.0.
+    EndCond = Builder.CreateFCmpONE(EndCond,
+                                    ConstantFP::get(getGlobalContext(), APFload(0.0)),
+                                    "loopcond");
+
 }
 
 Function *PrototypeAST::Codegen() {
