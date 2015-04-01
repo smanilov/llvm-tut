@@ -825,6 +825,12 @@ Value *IfExprAST::Codegen() {
     return PN;
 }
 
+Value *ForExprAST::codegen() {
+    // Emit the start code first, without 'variable' in scope
+    Value *StartVal = Start->Codegen();
+    if (StartVal == 0) return 0;
+}
+
 Function *PrototypeAST::Codegen() {
     // Make the function type: double(double,double) etc.
     vector<Type*> Doubles(Args.size(),
