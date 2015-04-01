@@ -889,6 +889,18 @@ Value *ForExprAST::codegen() {
 
     // Any new code will be inserted in AfterBB.
     Builder.SetInsertPoint(AfterBB);
+
+    // Add a new entry to the PHI node for the backedge.
+    Variable->addIncoming(NextVar, LoopEndBB);
+
+    // Restore the unshadowed variable.
+    if (OldVal)
+        NamedValues[VarName] = OldVal;
+    else
+        NamedValues.erase(VarName);
+
+    // for expr always returns 0.0.
+    return Constant::getNullValue(Type::getDoubleTy(getGlobalContext()));
 }
 
 Function *PrototypeAST::Codegen() {
