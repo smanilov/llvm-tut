@@ -181,6 +181,7 @@ namespace {
             virtual Value *Codegen();
     };
 
+    /// IfExprAST - Expression class for if/then/else.
     class IfExprAST : public ExprAST {
             ExprAST *Cond, *Then, *Else;
         public:
@@ -189,6 +190,7 @@ namespace {
             virtual Value *Codegen();
     };
 
+    /// ForExprAST - Expression class for for/in.
     class ForExprAST : public ExprAST {
             string VarName;
             ExprAST *Start, *End, *Step, *Body;
@@ -311,7 +313,7 @@ static ExprAST *ParseParenExpr() {
     return V;
 }
 
-// ifexpr ::= 'if' expression 'then' expression 'else' expression
+/// ifexpr ::= 'if' expression 'then' expression 'else' expression
 static ExprAST *ParseIfExpr() {
     getNextToken();  // eat the if.
 
@@ -378,6 +380,8 @@ static ExprAST *ParseForExpr() {
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
+///   ::= ifexpr
+///   ::= forexpr
 static ExprAST *ParsePrimary() {
     switch (CurTok) {
         default: return Error("unknown token when expecting an expression");
@@ -804,7 +808,7 @@ Value *IfExprAST::Codegen() {
     if (ThenV == 0) return 0;
 
     Builder.CreateBr(MergeBB);
-    // Codegen of 'Then' can change the current block, update ThenBB for the PHI
+    // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
     ThenBB = Builder.GetInsertBlock();
 
     // Emit else block.
@@ -815,7 +819,7 @@ Value *IfExprAST::Codegen() {
     if (ElseV == 0) return 0;
 
     Builder.CreateBr(MergeBB);
-    // Codegen of 'Else' can change the current block, update ElseBB for the PHI
+    // Codegen of 'Else' can change the current block, update ElseBB for the PHI.
     ElseBB = Builder.GetInsertBlock();
 
     // Emit merge block.
@@ -829,7 +833,23 @@ Value *IfExprAST::Codegen() {
 }
 
 Value *ForExprAST::Codegen() {
-    // Emit the start code first, without 'variable' in scope
+    // Output this as:
+    //   ...
+    //   start = startexpr
+    //   goto loop
+    // loop:
+    //   variable = phi [start, loopheader], [nextvariable, loopend]
+    //   ...
+    //   bodyexpr
+    //   ...
+    // loopend:
+    //   step = stepexpr
+    //   nextvariable = variable + step
+    //   endcond = endexpr
+    //   br endcond, loop, endloop
+    // outloop:
+
+    // Emit the start code first, without 'variable' in scope.
     Value *StartVal = Start->Codegen();
     if (StartVal == 0) return 0;
 
@@ -867,7 +887,7 @@ Value *ForExprAST::Codegen() {
         StepVal = Step->Codegen();
         if (StepVal == 0) return 0;
     } else {
-        // If not specified, use 1.0
+        // If not specified, use 1.0.
         StepVal = ConstantFP::get(getGlobalContext(), APFloat(1.0));
     }
 
@@ -972,7 +992,8 @@ Function *FunctionAST::Codegen() {
 
         return TheFunction;
     }
-    // Error reading body, remove function
+
+    // Error reading body, remove function.
     TheFunction->eraseFromParent();
     return 0;
 }
@@ -984,7 +1005,7 @@ Function *FunctionAST::Codegen() {
 static void HandleDefinition() {
     if (FunctionAST *F = ParseDefinition()) {
         if (Function *LF = F->Codegen()) {
-            fprintf(stderr, "Parsed a function definition.\n");
+            fprintf(stderr, "Read function definition:");
             LF->dump();
         }
     } else {
@@ -996,7 +1017,7 @@ static void HandleDefinition() {
 static void HandleExtern() {
     if (PrototypeAST *P = ParseExtern()) {
         if (Function *F = P->Codegen()) {
-            fprintf(stderr, "Parsed an extern\n");
+            fprintf(stderr, "Read extern: ");
             F->dump();
         }
     } else {
@@ -1036,14 +1057,13 @@ static void MainLoop() {
         }
     }
 }
-//
+
 //===----------------------------------------------------------------------===//
 // "Library" functions that can be "extern'd" from user code.
 //===----------------------------------------------------------------------===//
 
-// putchard - putchar that takes a double and returns 0.
-extern "C"
-double putchard(double X) {
+/// putchard - putchar that takes a double and returns 0.
+extern "C" double putchard(double X) {
     putchar((char)X);
     return 0;
 }
