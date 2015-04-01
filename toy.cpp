@@ -846,6 +846,17 @@ Value *ForExprAST::codegen() {
     PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(getGlobalContext()),
                                           2, VarName.c_str());
     Variable->addIncoming(StartVal, PreheaderBB);
+
+    // Within the loop, the variable is defined equal to the PHI node. If it
+    // shadows an existing variable, we have to restore it, so save it now.
+    Value *OldVal = NamedValues[VarName];
+    NamedValues[VarName] = Variable;
+
+    // Emit the body of the loop. This, like any other expr, can change the
+    // current BB. Note that we ignore the value computed by the body, but don't
+    // allow an error.
+    if (Body->Codegen() == 0)
+        return 0;
 }
 
 Function *PrototypeAST::Codegen() {
