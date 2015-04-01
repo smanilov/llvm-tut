@@ -17,6 +17,8 @@ using llvm::BasicBlock;
 using llvm::APFloat;
 using llvm::Type;
 using llvm::FunctionType;
+#include "llvm/IR/Instruction.h"
+using llvm::PHINode;
 #include "llvm/IR/Verifier.h"
 using llvm::verifyFunction;
 #include "llvm/Support/ErrorHandling.h"
@@ -26,6 +28,7 @@ using llvm::report_fatal_error;
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 using llvm::ExecutionEngine;
 using llvm::EngineBuilder;
+using llvm::Constant;
 
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 using llvm::SectionMemoryManager;
@@ -181,7 +184,7 @@ namespace {
     class IfExprAST : public ExprAST {
             ExprAST *Cond, *Then, *Else;
         public:
-            IFExprAST(ExprAST *cond, ExprAST *then, ExprAST *_else)
+            IfExprAST(ExprAST *cond, ExprAST *then, ExprAST *_else)
                 : Cond(cond), Then(then), Else(_else) {}
             virtual Value *Codegen();
     };
@@ -308,6 +311,69 @@ static ExprAST *ParseParenExpr() {
     return V;
 }
 
+// ifexpr ::= 'if' expression 'then' expression 'else' expression
+static ExprAST *ParseIfExpr() {
+    getNextToken();  // eat the if.
+
+    // condition.
+    ExprAST *Cond = ParseExpression();
+    if (!Cond) return 0;
+
+    if (CurTok != tok_then)
+        return Error("expected then");
+    getNextToken();  // eat the then
+
+    ExprAST *Then = ParseExpression();
+    if (Then == 0) return 0;
+
+    if (CurTok != tok_else)
+        return Error("expected else");
+
+    getNextToken();  // eat the else
+
+    ExprAST *Else = ParseExpression();
+    if (!Else) return 0;
+
+    return new IfExprAST(Cond, Then, Else);
+}
+
+/// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
+static ExprAST *ParseForExpr() {
+    getNextToken();  // eat the for
+
+    if (CurTok != tok_identifier)
+        return Error("expected identifier after for");
+
+    string IdName = IdentifierStr;
+    getNextToken();  // eat identifier
+
+    ExprAST *Start = ParseExpression();
+    if (Start == 0) return 0;
+    if (CurTok != ',')
+        return Error("expected ',' after for start value");
+    getNextToken();
+
+    ExprAST *End = ParseExpression();
+    if (End == 0) return 0;
+
+    // The step value is optional
+    ExprAST *Step = 0;
+    if (CurTok == ',') {
+        getNextToken();
+        Step = ParseExpression();
+        if (Step == 0) return 0;
+    }
+
+    if (CurTok != tok_in)
+        return Error("expected 'in' after for");
+    getNextToken();  // eat 'in'
+
+    ExprAST *Body = ParseExpression();
+    if (Body == 0) return 0;
+
+    return new ForExprAST(IdName, Start, End, Step, Body);
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
@@ -354,69 +420,6 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // Merge LHS/RHS.
         LHS = new BinaryExprAST(BinOp, LHS, RHS);
     }
-}
-
-// ifexpr ::= 'if' expression 'then' expression 'else' expression
-static ExprAST *ParseIfExpr() {
-    getNextToken();  // eat the if.
-
-    // condition.
-    ExprAST *Cond = ParseExpression();
-    if (!Cond) return 0;
-
-    if (CurTok != tok_then)
-        return Error("expected then");
-    getNextToken();  // eat the then
-
-    ExprAST *Then = ParseExpression();
-    if (Then == 0) return 0;
-
-    if (CurTok != tok_else)
-        return Error("expected else");
-
-    getNextToken();  // eat the else
-
-    ExprAST *Else = ParseExpression();
-    if (!Else) return 0;
-
-    return new IfExprAST(Cond, Then, Else);
-}
-
-/// forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression
-static ExprAST *ParseForExpr() {
-    getNextToken();  // eat the for
-
-    if (CurTok != tok_identifier)
-        return Error("expected identifier after for");
-
-    string IdName = IdentifierStr;
-    getNextToken();  // eat identifier
-
-    ExprAST *Start = ParseExpression();
-    if (start == 0) return 0;
-    if (CurTok != ',')
-        return Error("expected ',' after for start value");
-    getNextToken();
-
-    ExprAST *End = ParseExpression();
-    if (End == 0) return 0;
-
-    // The step value is optional
-    ExprAST *Step = 0;
-    if (CurTok == ',') {
-        getNextToken();
-        Step = ParseExpression();
-        if (Step == 0) return 0;
-    }
-
-    if (CurTok != tok_in)
-        return Error("expected 'in' after for");
-    getNextToken();  // eat 'in'
-
-    ExprAST *Body = ParseExpression();
-    if (Body == 0) return 0;
-
-    return new ForExprAST(IdName, Start, End, Step, Body);
 }
 
 /// expression
@@ -825,7 +828,7 @@ Value *IfExprAST::Codegen() {
     return PN;
 }
 
-Value *ForExprAST::codegen() {
+Value *ForExprAST::Codegen() {
     // Emit the start code first, without 'variable' in scope
     Value *StartVal = Start->Codegen();
     if (StartVal == 0) return 0;
@@ -881,7 +884,7 @@ Value *ForExprAST::codegen() {
 
     // Create the "after loop" block and insert it.
     BasicBlock *LoopEndBB = Builder.GetInsertBlock();
-    BasicBlock *AfterBB = BasicBlock::Create(getGlogalContext(), "afterloop",
+    BasicBlock *AfterBB = BasicBlock::Create(getGlobalContext(), "afterloop",
                                              TheFunction);
 
     // Insert the conditional branch into the end of LoopEndBB.
