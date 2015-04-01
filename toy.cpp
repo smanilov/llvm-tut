@@ -838,6 +838,14 @@ Value *ForExprAST::codegen() {
 
     // Insert an explicit fall through from the current block to the LoopBB.
     Builder.CreateBr(LoopBB);
+
+    // Start insertion in LoopBB.
+    Builder.SetInsertPoint(LoopBB);
+
+    // Start the PHI node with an entry for Start.
+    PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(getGlobalContext()),
+                                          2, VarName.c_str());
+    Variable->addIncoming(StartVal, PreheaderBB);
 }
 
 Function *PrototypeAST::Codegen() {
