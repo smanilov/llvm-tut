@@ -829,6 +829,15 @@ Value *ForExprAST::codegen() {
     // Emit the start code first, without 'variable' in scope
     Value *StartVal = Start->Codegen();
     if (StartVal == 0) return 0;
+
+    // Make the new basic block for the loop header, inserting after current
+    // block.
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
+    BasicBlock *PreheaderBB = Builder.GetInsertBlock();
+    BasicBlock *LoopBB = BasicBlock::Create(getGlobalContext(), "loop", TheFunction);
+
+    // Insert an explicit fall through from the current block to the LoopBB.
+    Builder.CreateBr(LoopBB);
 }
 
 Function *PrototypeAST::Codegen() {
