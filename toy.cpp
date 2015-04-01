@@ -857,6 +857,18 @@ Value *ForExprAST::codegen() {
     // allow an error.
     if (Body->Codegen() == 0)
         return 0;
+
+    // Emit the step value.
+    Value *StepVal;
+    if (Step) {
+        StepVal = Step->Codegen();
+        if (StepVal == 0) return 0;
+    } else {
+        // If not specified, use 1.0
+        StepVal = ConstantFP::get(getGlobalContext(), APFloat(1.0));
+    }
+
+    Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
 }
 
 Function *PrototypeAST::Codegen() {
