@@ -876,9 +876,19 @@ Value *ForExprAST::codegen() {
 
     // Convert condition to a bool by comparing equal to 0.0.
     EndCond = Builder.CreateFCmpONE(EndCond,
-                                    ConstantFP::get(getGlobalContext(), APFload(0.0)),
-                                    "loopcond");
+                              ConstantFP::get(getGlobalContext(), APFloat(0.0)),
+                              "loopcond");
 
+    // Create the "after loop" block and insert it.
+    BasicBlock *LoopEndBB = Builder.GetInsertBlock();
+    BasicBlock *AfterBB = BasicBlock::Create(getGlogalContext(), "afterloop",
+                                             TheFunction);
+
+    // Insert the conditional branch into the end of LoopEndBB.
+    Builder.CreateCondBr(EndCond, LoopBB, AfterBB);
+
+    // Any new code will be inserted in AfterBB.
+    Builder.SetInsertPoint(AfterBB);
 }
 
 Function *PrototypeAST::Codegen() {
