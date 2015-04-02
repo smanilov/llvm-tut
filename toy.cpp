@@ -1,3 +1,5 @@
+#include "llvm/ADT/STLExtras.h"
+using llvm::make_unique;
 #include "llvm/Support/TargetSelect.h"
 using llvm::InitializeNativeTarget;
 using llvm::InitializeNativeTargetAsmPrinter;
@@ -349,11 +351,15 @@ static ExprAST *ParseForExpr() {
     string IdName = IdentifierStr;
     getNextToken();  // eat identifier
 
+    if (CurTok != '=')
+        return Error("expected '=' after for");
+    getNextToken();  // eat '='
+
     ExprAST *Start = ParseExpression();
     if (Start == 0) return 0;
     if (CurTok != ',')
         return Error("expected ',' after for start value");
-    getNextToken();
+    getNextToken();  // eat ','
 
     ExprAST *End = ParseExpression();
     if (End == 0) return 0;
@@ -873,7 +879,7 @@ int main() {
         exit(1);
     }
 
-    legacy::FunctionPassManager OurFPM(TheModule);
+    FunctionPassManager OurFPM(TheModule);
 
     // Set up the optimizer pipeline.  Start with registering info about how the
     // target lays out data structures.
