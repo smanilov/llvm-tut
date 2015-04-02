@@ -570,16 +570,24 @@ Value *BinaryExprAST::Codegen() {
     if (L == 0 || R == 0) return 0;
 
     switch (Op) {
-        case '+': return Builder.CreateFAdd(L, R, "addtmp");
-        case '-': return Builder.CreateFSub(L, R, "subtmp");
-        case '*': return Builder.CreateFMul(L, R, "multmp");
-        case '<':
-            L = Builder.CreateFCmpULT(L, R, "cmptmp");
-            // Convert bool 0/1 to double 0.0 or 1.0
-            return Builder.CreateUIToFP(L, Type::getDoubleTy(getGlobalContext()),
-                                        "booltmp");
-        default: return ErrorV("invalid binary operator");
+    case '+': return Builder.CreateFAdd(L, R, "addtmp");
+    case '-': return Builder.CreateFSub(L, R, "subtmp");
+    case '*': return Builder.CreateFMul(L, R, "multmp");
+    case '<':
+        L = Builder.CreateFCmpULT(L, R, "cmptmp");
+        // Convert bool 0/1 to double 0.0 or 1.0
+        return Builder.CreateUIToFP(L, Type::getDoubleTy(getGlobalContext()),
+                                    "booltmp");
+    default: break;
     }
+
+    // If it wasn't a builtin binary operator, it must be a user defined one.
+    // Emit a call to it.
+    Function *F = TheModule->getFunction(string("binary") + Op);
+    assert(F && "binary operator not found!");
+
+    Value *Ops[2] = { L, R };
+    return Builder.CreateCall(F, Ops, "binop");
 }
 
 Value *CallExprAST::Codegen() {
