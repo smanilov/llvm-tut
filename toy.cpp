@@ -806,6 +806,10 @@ Function *FunctionAST::Codegen() {
     if (TheFunction == 0)
         return 0;
 
+    // If this is an operator, install it.
+    if (Proto->isBinaryOp())
+        BinopPrecedence[Proto->getOperatorName()] = Proto->getBinaryPrecedence();
+
     // Create a new basic block to start insertion into.
     BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", TheFunction);
     Builder.SetInsertPoint(BB);
