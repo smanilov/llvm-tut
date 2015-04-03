@@ -549,7 +549,7 @@ static PrototypeAST *ParsePrototype() {
     if (Kind && ArgNames.size() != Kind)
         return ErrorP("Invalid number of operands for operator");
 
-    return new PrototypeAST(FnName, ArgNames);
+    return new PrototypeAST(FnName, ArgNames, Kind != 0, BinaryPrecedence);
 }
 
 /// definition ::= 'def' prototype expression
