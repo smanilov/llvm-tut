@@ -428,6 +428,22 @@ static ExprAST *ParsePrimary() {
     }
 }
 
+/// unary
+///   ::= primary
+///   ::= '!' unary
+static ExprAST *ParseUnary() {
+    // If the current token is not an operator, it must be a primary expr.
+    if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
+        return ParsePrimary();
+
+    // If this is a unary operator, read it.
+    int Opc = CurTok;
+    getNextToken();
+    if (ExprAST *Operand = ParseUnary())
+        return new UnaryExprAST(Opc, Operand);
+    return 0;
+}
+
 /// binoprhs
 ///   ::= ('+' primary)*
 static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
@@ -459,22 +475,6 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         // Merge LHS/RHS.
         LHS = new BinaryExprAST(BinOp, LHS, RHS);
     }
-}
-
-/// unary
-///   ::= primary
-///   ::= '!' unary
-static ExprAST *ParseUnary() {
-    // If the current token is not an operator, it must be a primary expr.
-    if (!isascii(CurTok) || CurTok == '(' || CurTok == ',')
-        return ParsePrimary();
-
-    // If this is a unary operator, read it.
-    int Opc = CurTok;
-    getNextToken();
-    if (ExprAST *Operand = ParseUnary())
-        return new UnaryExprAST(Opc, Operand);
-    return 0;
 }
 
 /// expression
