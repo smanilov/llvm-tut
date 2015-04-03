@@ -178,6 +178,15 @@ namespace {
             virtual Value *Codegen();
     };
 
+    class UnaryExprAST : public ExprAST {
+            char Opcode;
+            ExprAST *Operand;
+        public:
+            UnaryExprAST(char opcode, ExprAST *operand)
+                : Opcode(opcode), Operand(operand) {}
+            virtual Value *Codegen();
+    };
+
     /// CallExprAST - Expression class for function calls.
     class CallExprAST : public ExprAST {
             string Callee;
