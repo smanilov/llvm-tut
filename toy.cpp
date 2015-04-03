@@ -735,14 +735,20 @@ Value *ForExprAST::Codegen() {
     //   br endcond, loop, endloop
     // outloop:
 
+    // Make the new basic block for the loop header, inserting after current
+    // block.
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
+
+    // Create an alloca for the variable in the entry block.
+    AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+
     // Emit the start code first, without 'variable' in scope.
     Value *StartVal = Start->Codegen();
     if (StartVal == 0) return 0;
 
-    // Make the new basic block for the loop header, inserting after current
-    // block.
-    Function *TheFunction = Builder.GetInsertBlock()->getParent();
-    BasicBlock *PreheaderBB = Builder.GetInsertBlock();
+    // Store the value into the alloca.
+    Builder.CreateStore(StartVal, Alloca);
+
     BasicBlock *LoopBB = BasicBlock::Create(getGlobalContext(), "loop", TheFunction);
 
     // Insert an explicit fall through from the current block to the LoopBB.
@@ -751,15 +757,10 @@ Value *ForExprAST::Codegen() {
     // Start insertion in LoopBB.
     Builder.SetInsertPoint(LoopBB);
 
-    // Start the PHI node with an entry for Start.
-    PHINode *Variable = Builder.CreatePHI(Type::getDoubleTy(getGlobalContext()),
-                                          2, VarName.c_str());
-    Variable->addIncoming(StartVal, PreheaderBB);
-
     // Within the loop, the variable is defined equal to the PHI node. If it
     // shadows an existing variable, we have to restore it, so save it now.
-    Value *OldVal = NamedValues[VarName];
-    NamedValues[VarName] = Variable;
+    AllocaInst *OldVal = NamedValues[VarName];
+    NamedValues[VarName] = Alloca;
 
     // Emit the body of the loop. This, like any other expr, can change the
     // current BB. Note that we ignore the value computed by the body, but don't
@@ -777,11 +778,15 @@ Value *ForExprAST::Codegen() {
         StepVal = ConstantFP::get(getGlobalContext(), APFloat(1.0));
     }
 
-    Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
-
     // Compute the end condition.
     Value *EndCond = End->Codegen();
     if (EndCond == 0) return EndCond;
+
+    // Reload, increment, and restore alloca. This hangles the case where
+    // the body of the loop mutates the variable.
+    Value *CurVar = Builder.CreateLoad(Alloca);
+    Value *NextVar = Builder.CreateFAdd(CurVar, StepVal, "nextvar");
+    Builder.CreateStore(NextVar, Alloca);
 
     // Convert condition to a bool by comparing equal to 0.0.
     EndCond = Builder.CreateFCmpONE(EndCond,
@@ -789,7 +794,6 @@ Value *ForExprAST::Codegen() {
                               "loopcond");
 
     // Create the "after loop" block and insert it.
-    BasicBlock *LoopEndBB = Builder.GetInsertBlock();
     BasicBlock *AfterBB = BasicBlock::Create(getGlobalContext(), "afterloop",
                                              TheFunction);
 
@@ -798,9 +802,6 @@ Value *ForExprAST::Codegen() {
 
     // Any new code will be inserted in AfterBB.
     Builder.SetInsertPoint(AfterBB);
-
-    // Add a new entry to the PHI node for the backedge.
-    Variable->addIncoming(NextVar, LoopEndBB);
 
     // Restore the unshadowed variable.
     if (OldVal)
