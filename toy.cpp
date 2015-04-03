@@ -445,7 +445,7 @@ static ExprAST *ParseBinOpRHS(int ExprPrec, ExprAST *LHS) {
         getNextToken();  // eat binop
 
         // Parse the primary expression after the binary operator.
-        ExprAST *RHS = ParsePrimary();
+        ExprAST *RHS = ParseUnary();
         if (!RHS) return 0;
 
         // If BinOp binds less tightly with RHS than the operator after RHS, let
@@ -481,7 +481,7 @@ static ExprAST *ParseUnary() {
 ///   ::= primary binoprhs
 ///
 static ExprAST *ParseExpression() {
-    ExprAST *LHS = ParsePrimary();
+    ExprAST *LHS = ParseUnary();
     if (!LHS) return 0;
 
     return ParseBinOpRHS(0, LHS);
