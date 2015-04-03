@@ -603,7 +603,10 @@ Value *NumberExprAST::Codegen() {
 Value *VariableExprAST::Codegen() {
     // Look this variable up in the function.
     Value *V = NamedValues[Name];
-    return V ? V : ErrorV("Unknown variable name");
+    if (V == 0) return ErrorV("Unknown variable name");
+
+    // Load the value.
+    return Builder.CreateLoad(V, Name.c_str());
 }
 
 Value *BinaryExprAST::Codegen() {
