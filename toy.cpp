@@ -504,6 +504,15 @@ static PrototypeAST *ParsePrototype() {
         Kind = 0;
         getNextToken();
         break;
+    case tok_unary:
+        getNextToken();
+        if (!isascii(CurTok))
+            return ErrorP("Expected unary operator");
+        FnName = "unary";
+        FnName += (char)CurTok;
+        Kind = 1;
+        getNextToken();
+        break;
     case tok_binary:
         getNextToken();
         if (!isascii(CurTok))
