@@ -585,8 +585,16 @@ static PrototypeAST *ParseExtern() {
 
 static Module *TheModule;
 static IRBuilder<> Builder(getGlobalContext());
-static map<string, Value*> NamedValues;
+static map<string, AllocaInst*> NamedValues;
 static FunctionPassManager *TheFPM;
+
+static AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
+                                          const string &VarName) {
+    IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+                     TheFunction->getEntryBlock().begin());
+    return TmpB.CreateAlloca(Type::getDoubleTy(getGlobalContext()), 0,
+                             VarName.c_str());
+}
 
 Value *NumberExprAST::Codegen() {
     return ConstantFP::get(getGlobalContext(), APFloat(Val));
