@@ -624,6 +624,17 @@ Value *BinaryExprAST::Codegen() {
     return Builder.CreateCall(F, Ops, "binop");
 }
 
+Value *UnaryExprAST::Codegen() {
+    Value *OperandV = Operand->Codegen();
+    if (OperandV == 0) return 0;
+
+    Function *F = TheModule->getFunction(string("unary") + Opcode);
+    if (F == 0)
+        return ErrorV("Unknown unary operator");
+
+    return Builder.CreateCall(F, OperandV, "unop");
+}
+
 Value *CallExprAST::Codegen() {
     // Look up the name in the global module table.
     Function *CalleeF = TheModule->getFunction(Callee);
