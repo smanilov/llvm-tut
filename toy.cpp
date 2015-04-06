@@ -80,7 +80,10 @@ enum Token {
     tok_for = -9, tok_in = -10,
 
     // operators
-    tok_binary = -11, tok_unary = -12
+    tok_binary = -11, tok_unary = -12,
+
+    // var definition
+    tok_var = -13,
 };
 
 static string IdentifierStr;  // Filled in if tok_identifier
@@ -108,6 +111,7 @@ static int gettok() {
         if (IdentifierStr == "in")     return tok_in;
         if (IdentifierStr == "binary") return tok_binary;
         if (IdentifierStr == "unary")  return tok_unary;
+        if (IdentifierStr == "var")    return tok_var;
         return tok_identifier;
     }
 
