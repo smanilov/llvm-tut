@@ -612,6 +612,14 @@ Value *VariableExprAST::Codegen() {
 }
 
 Value *BinaryExprAST::Codegen() {
+    // Special case '=' because we don't want to emit the LHS as an expression.
+    if (Op == '=') {
+        // Assignment requires the LHS to be an identifier.
+        VariableExprAST *LHSE = dynamic_cast<VariableExprAST*>(LHS);
+        if (!LHSE)
+            return ErrorV("destination of '=' must be a variable");
+    }
+
     Value *L = LHS->Codegen();
     Value *R = RHS->Codegen();
     if (L == 0 || R == 0) return 0;
