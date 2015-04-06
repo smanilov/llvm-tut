@@ -466,6 +466,16 @@ static ExprAST *ParseVarExpr() {
         if (CurTok != tok_identifier)
             return Error("expected identifier list after var");
     }
+
+    // At this point, we have to have 'in'.
+    if (CurTok != tok_in)
+        return Error("expected 'in' keyword after 'var'");
+    getNextToken();  // eat 'in'.
+
+    ExprAST *Body = ParseExpression();
+    if (Body == 0) return 0;
+
+    return new VarExprAST(VarNames, Body);
 }
 
 /// primary
