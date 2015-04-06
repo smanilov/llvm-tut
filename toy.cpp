@@ -242,6 +242,8 @@ namespace {
 
             unsigned getBinaryPrecedence() const { return Precedence; }
 
+            void CreateArgumentAllocas(Function *F);
+
             virtual Function *Codegen();
     };
 
@@ -854,6 +856,22 @@ Function *PrototypeAST::Codegen() {
     }
 
     return F;
+}
+
+/// CreateArgumentAllocas - Create an alloca for each argument and register the
+/// argument in the symbol table so that references to it will succeed.
+void PrototypeAST::CreateArgumentAllocas(Function *F) {
+    Function::arg_iterator AI = F->arg_begin();
+    for (unsigned Idx = 0, e = Args.size(); Idx != e; ++Idx, ++AI) {
+        // Create an alloca for this variable.
+        AllocaInst *Alloca = CreateEntryBlockAlloca(F, Args[Idx]);
+
+        // Store the initial value into the alloca.
+        Builder.CreateStore(AI, Alloca);
+
+        // Add arguments to variable symbol table.
+        NamedValues[Args[Idx]] = Alloca;
+    }
 }
 
 Function *FunctionAST::Codegen() {
