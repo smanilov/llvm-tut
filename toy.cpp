@@ -1022,6 +1022,8 @@ int main() {
     // Set up the optimizer pipeline.  Start with registering info about how the
     // target lays out data structures.
     TheModule->setDataLayout(TheExecutionEngine->getDataLayout());
+    // Promote allocas to registers.
+    OurFPM.add(createPromoteMemoryToRegisterPass());
     // Provide basic AliasAnalysis support for GVN.
     OurFPM.add(createBasicAliasAnalysisPass());
     // Do simple "peephole" optimizations and bit-twiddling optzns.
