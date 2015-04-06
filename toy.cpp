@@ -618,6 +618,17 @@ Value *BinaryExprAST::Codegen() {
         VariableExprAST *LHSE = dynamic_cast<VariableExprAST*>(LHS);
         if (!LHSE)
             return ErrorV("destination of '=' must be a variable");
+
+        // Codegen the RHS.
+        Value *Val = RHS->Codegen();
+        if (Val == 0) return 0;
+
+        // Look up the name.
+        Value *Variable = NamedValues[LHSE->getName()];
+        if (Variable == 0) return ErrorV("Unknown variable name");
+
+        Builder.CreateStore(Val, Variable);
+        return Val;
     }
 
     Value *L = LHS->Codegen();
