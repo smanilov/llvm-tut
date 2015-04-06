@@ -906,6 +906,18 @@ Value *ForExprAST::Codegen() {
     return Constant::getNullValue(Type::getDoubleTy(getGlobalContext()));
 }
 
+Value *VarExprAST::Codegen() {
+    vector<AllocaInst *> OldBindings;
+
+    Function *TheFunction = Builder.GetInstertBlock()->getParent();
+
+    // Register all variables and emit their initializer.
+    for (unsigned i = 0, e = VarNames.size(); i != e; ++i) {
+        const string &VarName = VarNames[i].first;
+        ExprAST *Init = VarNames[i].second;
+    }
+}
+
 Function *PrototypeAST::Codegen() {
     // Make the function type:  double(double,double) etc.
     vector<Type *> Doubles(Args.size(),
