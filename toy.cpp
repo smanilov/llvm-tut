@@ -430,12 +430,26 @@ static ExprAST *ParseForExpr() {
     return new ForExprAST(IdName, Start, End, Step, Body);
 }
 
+/// varexpr ::= 'var' identifier ('=' expression)?
+//                    (',' identifier ('=' expression)?)* 'in' expression
+static ExprAST *ParseVarExpr() {
+    getNextToken();  // eat the var.
+
+    vector<pair<string, ExprAST*>> VarNames;
+
+    // At least one variable name is required.
+    if (CurTok != tok_identifier)
+        return Error("expected identifier after var");
+
+}
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
 ///   ::= parenexpr
 ///   ::= ifexpr
 ///   ::= forexpr
+///   ::= varexpr
 static ExprAST *ParsePrimary() {
     switch (CurTok) {
         case tok_identifier: return ParseIdentifierExpr();
@@ -443,6 +457,7 @@ static ExprAST *ParsePrimary() {
         case '(':            return ParseParenExpr();
         case tok_if:         return ParseIfExpr();
         case tok_for:        return ParseForExpr();
+        case tok_var:        return ParseVarExpr();
         default: return Error("unknown token when expecting an expression");
     }
 }
