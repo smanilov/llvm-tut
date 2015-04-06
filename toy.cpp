@@ -59,6 +59,9 @@ using std::map;
 using std::string;
 #include <vector>
 using std::vector;
+#include <utility>
+using std::pair;
+using std::make_pair;
 #include <memory>
 using std::unique_ptr;
 
@@ -441,6 +444,28 @@ static ExprAST *ParseVarExpr() {
     if (CurTok != tok_identifier)
         return Error("expected identifier after var");
 
+    while (1) {
+        string Name = IdentifierStr;
+        getNextToken();  // eat identifier.
+
+        // Read the optional initializer.
+        ExprAST *Init = 0;
+        if (CurTok == '=') {
+            getNextToken();  // eat the '='.
+
+            Init = ParseExpression();
+            if (Init == 0) return 0;
+        }
+
+        VarNames.push_back(make_pair(Name, Init));
+
+        // End of var list, exit loop.
+        if (CurTok != ',') break;
+        getNextToken();  // eat the ','.
+
+        if (CurTok != tok_identifier)
+            return Error("expected identifier list after var");
+    }
 }
 
 /// primary
