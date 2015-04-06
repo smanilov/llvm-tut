@@ -916,6 +916,29 @@ Value *VarExprAST::Codegen() {
         const string &VarName = VarNames[i].first;
         ExprAST *Init = VarNames[i].second;
     }
+
+    // Emit the initializer before adding the variable to scope, this prevents
+    // the initializer from referencing the variable itself, and permits stuff
+    // like this:
+    //   var a = 1 in
+    //     var a = a in ...   # refers to outer 'a'.
+    Value *InitVal;
+    if (Init) {
+        InitVal = Init->Codegen();
+        if (InitVal == 0) return 0;
+    } else {  // If not specified, use 0.0.
+        InitVal = ConstantFP::get(getGlobalContext(), APFloat(0.0));
+    }
+
+    AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, VarName);
+    Builder.CreateStore(InitVal, Alloca);
+
+    // Remember the old variable binding so that we can restore the binding when
+    // we unrecurse.
+    OldBindings.push_back(NamedValues[VarName]);
+
+    // Remember this binding.
+    NamedValues[VarName] = Alloca;
 }
 
 Function *PrototypeAST::Codegen() {
