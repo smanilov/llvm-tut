@@ -21,6 +21,8 @@ using llvm::Type;
 using llvm::FunctionType;
 #include "llvm/IR/Instruction.h"
 using llvm::PHINode;
+#include "llvm/IR/Instructions.h"
+using llvm::AllocaInst;
 #include "llvm/IR/Verifier.h"
 using llvm::verifyFunction;
 #include "llvm/Support/ErrorHandling.h"
@@ -169,6 +171,7 @@ namespace {
             string Name;
         public:
             VariableExprAST(const string &name) : Name(name) {}
+            const string& getName() const { return Name; }
             virtual Value *Codegen();
     };
 
@@ -606,9 +609,14 @@ Value *NumberExprAST::Codegen() {
     return ConstantFP::get(getGlobalContext(), APFloat(Val));
 }
 
+#include <iostream>
+
+using std::cout;
+
 Value *VariableExprAST::Codegen() {
     // Look this variable up in the function.
     Value *V = NamedValues[Name];
+    cout << Name << '\n';
     if (V == 0) return ErrorV("Unknown variable name");
 
     // Load the value.
@@ -871,12 +879,8 @@ Function *PrototypeAST::Codegen() {
     // Set names for all arguments.
     unsigned Idx = 0;
     for (Function::arg_iterator AI = F->arg_begin(); Idx != Args.size();
-         ++AI, ++Idx) {
+         ++AI, ++Idx)
         AI->setName(Args[Idx]);
-
-        // Add arguments to variable symbol table.
-        NamedValues[Args[Idx]] = AI;
-    }
 
     return F;
 }
@@ -893,6 +897,7 @@ void PrototypeAST::CreateArgumentAllocas(Function *F) {
         Builder.CreateStore(AI, Alloca);
 
         // Add arguments to variable symbol table.
+        cout << "Args[" << Idx << "]=" << Args[Idx] << '\n';
         NamedValues[Args[Idx]] = Alloca;
     }
 }
@@ -911,6 +916,9 @@ Function *FunctionAST::Codegen() {
     // Create a new basic block to start insertion into.
     BasicBlock *BB = BasicBlock::Create(getGlobalContext(), "entry", TheFunction);
     Builder.SetInsertPoint(BB);
+
+    // Add all arguments to the symbol table and create their allocas.
+    Proto->CreateArgumentAllocas(TheFunction);
 
     if (Value *RetVal = Body->Codegen()) {
         // Finish off the function.
@@ -1001,6 +1009,12 @@ static void MainLoop() {
 extern "C" double putchard(double X) {
     putchar((char)X);
     return 0;
+}
+
+/// printd - printf that takes a double prints it as "%f\n", returning 0.
+extern "C" double printd(double X) {
+  printf("%f\n", X);
+  return 0;
 }
 
 //===----------------------------------------------------------------------===//
