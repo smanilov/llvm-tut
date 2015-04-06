@@ -943,6 +943,13 @@ Value *VarExprAST::Codegen() {
     // Codegen the body, now that all vars are in scope.
     Value *BodyVal = Body->Codegen();
     if (BodyVal == 0) return 0;
+
+    // Pop all our variables from scope.
+    for (unsigned i = 0, e = VarNames.size(); i != e; ++i)
+        NamedValues[VarNames[i].first] = OldBindings[i];
+
+    // Return the body computation.
+    return BodyVal;
 }
 
 Function *PrototypeAST::Codegen() {
