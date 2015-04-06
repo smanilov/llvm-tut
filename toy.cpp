@@ -225,6 +225,16 @@ namespace {
             virtual Value *Codegen();
     };
 
+    class VarExprAST : public ExprAST {
+            vector<pair<string, ExprAST*>> VarNames;
+            ExprAST *Body;
+        public:
+            VarExprAST(const vector<pair<string, ExprAST*>> &varnames,
+                       ExprAST *body)
+                : VarNames(varnames), Body(body) {}
+            virtual Value *Codegen();
+    };
+
     /// PrototypeAST - This class represents the "prototype" for a function,
     /// which captures its name, and its argument names (thus implicitly the number
     /// of arguments the function takes) as well as if it is an operator.
