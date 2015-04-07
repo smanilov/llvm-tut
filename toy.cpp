@@ -1090,7 +1090,6 @@ static void HandleTopLevelExpression() {
 /// top ::= definition | external | expression | ';'
 static void MainLoop() {
     while (1) {
-        fprintf(stderr, "ready> ");
         switch (CurTok) {
             case tok_eof:    return;
             case ';':        getNextToken(); break;  // ignore top-level semicolons.
@@ -1136,7 +1135,6 @@ int main() {
     BinopPrecedence['*'] = 40;  // highest.
 
     // Prime the first token.
-    fprintf(stderr, "ready> ");
     getNextToken();
 
     // Make the module, which holds all the code.
