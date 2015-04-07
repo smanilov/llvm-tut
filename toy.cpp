@@ -636,7 +636,7 @@ static FunctionAST *ParseDefinition() {
 static FunctionAST *ParseTopLevelExpr() {
     if (ExprAST *E = ParseExpression()) {
         // Make an anonymous proto.
-        PrototypeAST *Proto = new PrototypeAST("", vector<string>());
+        PrototypeAST *Proto = new PrototypeAST("main", vector<string>());
         return new FunctionAST(Proto, E);
     }
     return 0;
