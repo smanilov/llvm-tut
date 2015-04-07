@@ -1071,15 +1071,8 @@ static void HandleExtern() {
 static void HandleTopLevelExpression() {
     // Evaluate a top-level expression into an anonymous function.
     if (FunctionAST *F = ParseTopLevelExpr()) {
-        if (Function *LF = F->Codegen()) {
-            TheExecutionEngine->finalizeObject();
-            // JIT the function, returning a function pointer.
-            void *FPtr = TheExecutionEngine->getPointerToFunction(LF);
-
-            // Cast it to the right type (takes no arguments, returns a double)
-            // so we can call it as a native function.
-            double (*FP)() = (double (*)())(intptr_t)FPtr;
-            fprintf(stderr, "Evaluated to %f\n", FP());
+        if (!F->Codegen()) {
+            fprintf(stderr, "Error generating code for top level expr");
         }
     } else {
         // Skip token for error recovery.
@@ -1158,19 +1151,6 @@ int main() {
     // Set up the optimizer pipeline.  Start with registering info about how the
     // target lays out data structures.
     TheModule->setDataLayout(TheExecutionEngine->getDataLayout());
-    // Promote allocas to registers.
-    OurFPM.add(createPromoteMemoryToRegisterPass());
-    // Provide basic AliasAnalysis support for GVN.
-    OurFPM.add(createBasicAliasAnalysisPass());
-    // Do simple "peephole" optimizations and bit-twiddling optzns.
-    OurFPM.add(createInstructionCombiningPass());
-    // Reassociate expressions.
-    OurFPM.add(createReassociatePass());
-    // Eliminate Common SubExpressions.
-    OurFPM.add(createGVNPass());
-    // Simplify the control flow graph (deleting unreachable blocks, etc).
-    OurFPM.add(createCFGSimplificationPass());
-
     OurFPM.doInitialization();
 
     // Set the global so the code gen can use this.
