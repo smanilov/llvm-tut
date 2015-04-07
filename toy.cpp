@@ -669,14 +669,9 @@ Value *NumberExprAST::Codegen() {
     return ConstantFP::get(getGlobalContext(), APFloat(Val));
 }
 
-#include <iostream>
-
-using std::cout;
-
 Value *VariableExprAST::Codegen() {
     // Look this variable up in the function.
     Value *V = NamedValues[Name];
-    cout << Name << '\n';
     if (V == 0) return ErrorV("Unknown variable name");
 
     // Load the value.
@@ -909,7 +904,7 @@ Value *ForExprAST::Codegen() {
 Value *VarExprAST::Codegen() {
     vector<AllocaInst *> OldBindings;
 
-    Function *TheFunction = Builder.GetInstertBlock()->getParent();
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
 
     // Register all variables and emit their initializer.
     for (unsigned i = 0, e = VarNames.size(); i != e; ++i) {
@@ -1003,7 +998,6 @@ void PrototypeAST::CreateArgumentAllocas(Function *F) {
         Builder.CreateStore(AI, Alloca);
 
         // Add arguments to variable symbol table.
-        cout << "Args[" << Idx << "]=" << Args[Idx] << '\n';
         NamedValues[Args[Idx]] = Alloca;
     }
 }
