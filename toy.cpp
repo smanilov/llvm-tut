@@ -1107,6 +1107,23 @@ extern "C" double printd(double X) {
   return 0;
 }
 
+Static DIBuilder *DBuilder;
+
+struct DebugInfo {
+    DICompileUnit TheCU;
+    DIType DblTy;
+
+    DIType getDoubleTy();
+} KSDbgInfo;
+
+DIType DebugInfo::getDoubleTy() {
+    if (DblTy.isValid())
+        return DblTy;
+
+    DblTy = DBuilder->createBasicType("double", 64, 64, dwarf::DW_ATE_float);
+    return DblTy;
+}
+
 //===----------------------------------------------------------------------===//
 // Main driver code.
 //===----------------------------------------------------------------------===//
