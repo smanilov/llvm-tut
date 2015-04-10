@@ -100,11 +100,11 @@ static int gettok() {
 
     // Skip any whitespace.
     while (isspace(LastChar))
-        LastChar = getchar();
+        LastChar = advance();
 
     if (isalpha(LastChar)) {  // identifier: [a-zA-Z][a-zA-Z0-9]*
         IdentifierStr = LastChar;
-        while (isalnum((LastChar = getchar())))
+        while (isalnum((LastChar = advance())))
             IdentifierStr += LastChar;
 
         if (IdentifierStr == "def")    return tok_def;
@@ -124,7 +124,7 @@ static int gettok() {
         string NumStr;
         do {
             NumStr += LastChar;
-            LastChar = getchar();
+            LastChar = advance();
         } while (isdigit(LastChar) || LastChar == '.');
 
         NumVal = strtod(NumStr.c_str(), 0);
@@ -133,7 +133,7 @@ static int gettok() {
 
     if (LastChar == '#') {
         // Comment until end of line.
-        do LastChar = getchar();
+        do LastChar = advance();
         while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
         if (LastChar != EOF)
@@ -146,7 +146,7 @@ static int gettok() {
 
     // Otherwise, just return the character as its ascii value.
     int ThisChar = LastChar;
-    LastChar = getchar();
+    LastChar = advance();
     return ThisChar;
 }
 
