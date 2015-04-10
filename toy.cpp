@@ -1046,9 +1046,8 @@ static ExecutionEngine *TheExecutionEngine;
 
 static void HandleDefinition() {
     if (FunctionAST *F = ParseDefinition()) {
-        if (Function *LF = F->Codegen()) {
-            fprintf(stderr, "Read function definition:");
-            LF->dump();
+        if (!F->Codegen()) {
+            fprintf(stderr, "Error generating code for definition");
         }
     } else {
         // Skip token for error recovery.
@@ -1058,9 +1057,8 @@ static void HandleDefinition() {
 
 static void HandleExtern() {
     if (PrototypeAST *P = ParseExtern()) {
-        if (Function *F = P->Codegen()) {
-            fprintf(stderr, "Read extern: ");
-            F->dump();
+        if (!P->Codegen()) {
+            fprintf(stderr, "Error generating code for extern");
         }
     } else {
         // Skip token for error recovery.
