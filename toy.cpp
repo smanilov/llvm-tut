@@ -986,6 +986,14 @@ Function *PrototypeAST::Codegen() {
     DIFile Unit = DBuilder->createFile(KSDbgInfo.TheCU.getFilename(),
                                        KSDbgInfo.TheCU.getDirectory());
 
+    DIDescriptor FContext(Unit);
+    unsigned LineNo = 0;
+    unsigned ScopeLine = 0;
+    DISubprogram SP = DBuilder->createFunction(
+            FContext, Name, StringRef(), Unit, LineNo,
+            CreateFunctionType(Args.size(), Unit), false /* internal linkage */,
+            true /* definition */, ScopeLine, DIDescriptor::FlagPrototyped, false, F);
+
     return F;
 }
 
