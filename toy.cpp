@@ -1161,6 +1161,11 @@ int main() {
         exit(1);
     }
 
+    DBuilder = new DIBuilder(*TheModule);
+
+    KSDbgInfo.TheCU = DBuilder->createCompileUnit(
+            dwarf::DW_LANG_C, "fib.ks", ".", "Kaleidoscope Compiler", 0, "", 0);
+
     FunctionPassManager OurFPM(TheModule);
 
     // Set up the optimizer pipeline.  Start with registering info about how the
