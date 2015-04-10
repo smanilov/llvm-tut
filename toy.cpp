@@ -983,6 +983,9 @@ Function *PrototypeAST::Codegen() {
          ++AI, ++Idx)
         AI->setName(Args[Idx]);
 
+    DIFile Unit = DBuilder->createFile(KSDbgInfo.TheCU.getFilename(),
+                                       KSDbgInfo.TheCU.getDirectory());
+
     return F;
 }
 
