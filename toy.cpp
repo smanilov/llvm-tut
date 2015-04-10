@@ -1181,6 +1181,8 @@ int main() {
 
     TheFPM = 0;
 
+    DBuilder->finalize();
+
     // Print out all of the generated code.
     TheModule->dump();
 
