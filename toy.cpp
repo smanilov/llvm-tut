@@ -1135,6 +1135,24 @@ DIType DebugInfo::getDoubleTy() {
     return DblTy;
 }
 
+struct SourceLocation {
+    int Line;
+    int Col;
+};
+static SourceLocation CurLoc;
+static SourceLocation LexLoc = {1, 0};
+
+static int advance() {
+    int LastChar = getchar();
+
+    if (LastChar == '\n' || LastChar == '\r') {
+        LexLoc.Line++;
+        LexLoc.Col = 0;
+    } else
+        LexLoc.Col++;
+    return LastChar;
+}
+
 //===----------------------------------------------------------------------===//
 // Main driver code.
 //===----------------------------------------------------------------------===//
